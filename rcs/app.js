@@ -4,71 +4,10 @@
    =================================== */
 
 // ── Supabase Config ──
-const SUPABASE_URL = 'https://vmgomrmxosagwwfpjidm.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZ29tcm14b3NhZ3d3ZnBqaWRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5OTQzMzEsImV4cCI6MjA4OTU3MDMzMX0.SR8N-tgIXV1VfB9tEFB9r6j8sMcyTaNFcqR9ny4HPnc';
+const supabaseUrl = 'https://vmgomrmxosagwwfpjidm.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZ29tcm14b3NhZ3d3ZnBqaWRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5OTQzMzEsImV4cCI6MjA4OTU3MDMzMX0.SR8N-tgIXV1VfB9tEFB9r6j8sMcyTaNFcqR9ny4HPnc';
 
-// ── Supabase REST helper ──
-const supabase = {
-  async query(table, { select = '*', filters = '', order = '' } = {}) {
-    let url = `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}`;
-    if (filters) url += `&${filters}`;
-    if (order) url += `&order=${order}`;
-
-    const res = await fetch(url, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      }
-    });
-    if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
-    return res.json();
-  },
-
-  async insert(table, data) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(`Supabase insert error: ${res.status}`);
-    return res.json();
-  },
-
-  async update(table, id, data) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(`Supabase update error: ${res.status}`);
-    return res.json();
-  },
-
-  async delete(table, id) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    if (!res.ok) throw new Error(`Supabase delete error: ${res.status}`);
-    return true;
-  }
-};
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // ── Session & Cart State ──
 function getSessionId() {
@@ -135,12 +74,20 @@ function renderProductCard(product, type = 'serbatoio') {
         <span class="price-vat">+ IVA</span>
       </div>
       <div class="product-actions">
-        <button class="btn btn-primary btn-sm btn-add-cart" data-id="${product.id}" data-type="${type}" data-name="${product.name}" data-price="${product.price}" data-image="${product.image_url}">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
-          </svg>
-          Aggiungi al carrello
-        </button>
+        ${product.is_quote_only
+          ? `<button class="btn btn-primary btn-sm btn-quote" data-id="${product.id}">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              Richiedi Preventivo
+            </button>`
+          : `<button class="btn btn-primary btn-sm btn-add-cart" data-id="${product.id}" data-type="${type}" data-name="${product.name}" data-price="${product.price}" data-image="${product.image_url}">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
+              </svg>
+              Aggiungi al carrello
+            </button>`
+        }
         <a href="#" class="details-link" data-slug="${product.slug}">
           Vedi dettagli
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -155,69 +102,60 @@ function renderProductCard(product, type = 'serbatoio') {
 }
 
 // ── Load Products from Supabase ──
-async function loadProducts() {
-  const grid = document.getElementById('products-grid');
+async function loadAndRenderProducts() {
+  const serbatoiGrid = document.getElementById('products-grid');
+  const accessoriGrid = document.getElementById('accessories-grid');
+
+  if (serbatoiGrid) serbatoiGrid.innerHTML = '';
+  if (accessoriGrid) accessoriGrid.innerHTML = '';
 
   try {
-    const serbatoi = await supabase.query('serbatoi', {
-      select: '*',
-      filters: 'is_featured=eq.true',
-      order: 'sort_order.asc'
-    });
+    const { data, error } = await supabaseClient
+      .from('products')
+      .select(`
+        *,
+        categories ( name, slug )
+      `)
+      .eq('is_active', true)
+      .order('price', { ascending: true }); // optional ordering
 
-    grid.innerHTML = '';
+    if (error) throw error;
 
-    if (serbatoi.length === 0) {
-      grid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun prodotto disponibile al momento.</p>';
-      return;
-    }
+    let hasSerbatoi = false;
+    let hasAccessori = false;
 
-    serbatoi.forEach((product, i) => {
-      const card = renderProductCard(product, 'serbatoio');
+    data.forEach((product, i) => {
+      // Determina il tipo in base alla categoria
+      const isSerbatoio = product.categories?.slug === 'serbatoi';
+      const isAccessorio = product.categories?.slug === 'accessori';
+      
+      const card = renderProductCard(product, isSerbatoio ? 'serbatoio' : 'accessorio');
       card.classList.add(`reveal-delay-${(i % 4) + 1}`);
-      grid.appendChild(card);
+
+      if (isSerbatoio && serbatoiGrid) {
+        serbatoiGrid.appendChild(card);
+        hasSerbatoi = true;
+      } else if (isAccessorio && accessoriGrid) {
+        accessoriGrid.appendChild(card);
+        hasAccessori = true;
+      }
     });
 
-    // Trigger reveal for new elements
-    observeRevealElements();
-    attachCartListeners();
-  } catch (err) {
-    console.error('Error loading products:', err);
-    grid.innerHTML = '<p style="text-align:center; color: var(--danger); grid-column: 1/-1; padding: 40px;">Errore nel caricamento dei prodotti. Riprova più tardi.</p>';
-  }
-}
-
-// ── Load Accessories from Supabase ──
-async function loadAccessories() {
-  const grid = document.getElementById('accessories-grid');
-
-  try {
-    const accessori = await supabase.query('accessori', {
-      select: '*',
-      filters: 'is_featured=eq.true',
-      order: 'sort_order.asc'
-    });
-
-    grid.innerHTML = '';
-
-    if (accessori.length === 0) {
-      grid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun accessorio disponibile al momento.</p>';
-      return;
+    if (!hasSerbatoi && serbatoiGrid) {
+      serbatoiGrid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun serbatoio disponibile al momento.</p>';
     }
-
-    accessori.forEach((product, i) => {
-      const card = renderProductCard(product, 'accessorio');
-      card.classList.add(`reveal-delay-${(i % 4) + 1}`);
-      grid.appendChild(card);
-    });
+    if (!hasAccessori && accessoriGrid) {
+      accessoriGrid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun accessorio disponibile al momento.</p>';
+    }
 
     observeRevealElements();
     attachCartListeners();
   } catch (err) {
-    console.error('Error loading accessories:', err);
-    grid.innerHTML = '<p style="text-align:center; color: var(--danger); grid-column: 1/-1; padding: 40px;">Errore nel caricamento degli accessori. Riprova più tardi.</p>';
+    console.error('Error loading catalogs:', err);
+    if (serbatoiGrid) serbatoiGrid.innerHTML = '<p style="text-align:center; color: var(--danger); grid-column: 1/-1; padding: 40px;">Errore nel caricamento del catalogo.</p>';
   }
 }
+
 
 // ── Cart Logic ──
 function addToCart(productId, productType, name, price, image) {
@@ -256,6 +194,16 @@ function updateCartQuantity(productId, delta) {
   saveCart();
   updateCartUI();
 }
+
+// Export for inline HTML event handlers
+window.updateCartQuantity = updateCartQuantity;
+window.removeFromCart = removeFromCart;
+
+// ── Richiesta Preventivo Stub ──
+function richiediPreventivo(productId) {
+  alert('Funzionalità Richiedi Preventivo non ancora implementata. (Product ID: ' + productId + ')');
+}
+window.richiediPreventivo = richiediPreventivo;
 
 function saveCart() {
   localStorage.setItem('rcs_cart', JSON.stringify(cart));
@@ -364,6 +312,16 @@ function attachCartListeners() {
       setTimeout(() => { btn.style.transform = ''; }, 150);
     });
   });
+
+  document.querySelectorAll('.btn-quote').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      richiediPreventivo(btn.dataset.id);
+      
+      btn.style.transform = 'scale(0.95)';
+      setTimeout(() => { btn.style.transform = ''; }, 150);
+    });
+  });
 }
 
 // ── Scroll Reveal (Intersection Observer) ──
@@ -467,9 +425,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   observeRevealElements();
   loadCart();
 
-  // Load data from Supabase
-  await Promise.all([
-    loadProducts(),
-    loadAccessories()
-  ]);
+  await loadAndRenderProducts();
 });

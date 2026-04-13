@@ -830,7 +830,10 @@ button {
 
 .footer-brand .footer-logo img {
   height: 70px;
-  filter: brightness(0) invert(1);
+  background: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
 .footer-brand .footer-logo span {
