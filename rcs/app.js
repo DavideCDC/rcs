@@ -199,6 +199,48 @@ function updateCartQuantity(productId, delta) {
 window.updateCartQuantity = updateCartQuantity;
 window.removeFromCart = removeFromCart;
 
+// ── Integrazione Checkout Stripe (Vercel) ──
+window.checkoutCart = async function(btnElement) {
+  if (cart.length === 0) return;
+
+  try {
+    if (btnElement) {
+      btnElement.innerHTML = '<span class="loader"></span> Attendere...';
+      btnElement.disabled = true;
+    }
+    
+    // Chiama l'API su Vercel inviando l'intero array del carrello
+    const response = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ cart: cart })
+    });
+
+    const session = await response.json();
+
+    // Reindirizza l'utente alla pagina di pagamento sicura di Stripe
+    if (session.url) {
+      window.location.href = session.url;
+    } else {
+      console.error("Errore dal server:", session.error);
+      alert("Errore nell'avvio del pagamento.");
+      if (btnElement) {
+        btnElement.innerHTML = 'Procedi all\'ordine';
+        btnElement.disabled = false;
+      }
+    }
+  } catch (error) {
+    console.error("Errore di rete:", error);
+    alert("Errore di connessione al server.");
+    if (btnElement) {
+      btnElement.innerHTML = 'Procedi all\'ordine';
+      btnElement.disabled = false;
+    }
+  }
+}
+
 // ── Richiesta Preventivo Stub ──
 function richiediPreventivo(productId) {
   alert('Funzionalità Richiedi Preventivo non ancora implementata. (Product ID: ' + productId + ')');
@@ -304,9 +346,10 @@ function attachCartListeners() {
   document.querySelectorAll('.btn-add-cart').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      
       const { id, type, name, price, image } = btn.dataset;
       addToCart(id, type, name, price, image);
-
+      
       // Button micro-animation
       btn.style.transform = 'scale(0.95)';
       setTimeout(() => { btn.style.transform = ''; }, 150);
@@ -409,6 +452,15 @@ function initEvents() {
   document.getElementById('btn-cart').addEventListener('click', openCart);
   document.getElementById('cart-close').addEventListener('click', closeCart);
   document.getElementById('cart-overlay').addEventListener('click', closeCart);
+
+  // Checkout Button
+  const btnCheckout = document.getElementById('btn-checkout');
+  if (btnCheckout) {
+    btnCheckout.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.checkoutCart(btnCheckout);
+    });
+  }
 
   // ESC to close cart
   document.addEventListener('keydown', (e) => {
