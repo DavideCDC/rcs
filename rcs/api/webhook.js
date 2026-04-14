@@ -60,6 +60,11 @@ export default async function handler(req, res) {
         const shipping = session.shipping_details?.address || {};
         const fullAddress = `${shipping.line1 || ''} ${shipping.line2 || ''}, ${shipping.postal_code || ''} ${shipping.city || ''}, ${shipping.country || ''}`.trim() || 'Indirizzo non fornito';
 
+        // Estrai il Codice Fiscale (dai custom_fields)
+        const customFields = session.custom_fields || [];
+        const cfField = customFields.find(field => field.key === 'codice_fiscale');
+        const codiceFiscale = cfField && cfField.text ? cfField.text.value : null;
+
         try {
             // Salva nel database Supabase
             const { data, error } = await supabase
@@ -69,6 +74,7 @@ export default async function handler(req, res) {
                         stripe_session_id: session.id,
                         customer_name: customerName,
                         customer_email: customerEmail,
+                        tax_id: codiceFiscale,
                         shipping_address: fullAddress,
                         total_amount: amountTotal,
                         status: 'paid', // Puoi gestire gli stati (paid, processing, shipped)

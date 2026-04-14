@@ -59,6 +59,17 @@ export default async function handler(req, res) {
                     },
                 },
             ],
+            custom_fields: [
+                {
+                    key: 'codice_fiscale',
+                    label: {
+                        type: 'custom',
+                        custom: 'Codice Fiscale (per fattura)',
+                    },
+                    type: 'text',
+                    optional: false, // Rende il campo obbligatorio
+                }
+            ],
             success_url: `https://${req.headers.host}/success.html`, // Pagina se paga
             cancel_url: `https://${req.headers.host}/index.html`, // Pagina se annulla
         });
