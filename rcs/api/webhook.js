@@ -4,10 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 // Inizializza Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Inizializza Supabase (assicurati di avere queste variabili d'ambiente su Vercel)
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// L'inizializzazione di Supabase verrà fatta all'interno dell'handler
+// per garantire che Vercel abbia caricato le variabili d'ambiente.
 
 // Disabilita il body parser predefinito di Next.js/Vercel
 // Questo è NECESSARIO per leggere il raw body e validare la firma di Stripe
@@ -67,6 +65,17 @@ export default async function handler(req, res) {
         const codiceFiscale = cfField && cfField.text ? cfField.text.value : null;
 
         try {
+            // Recupera le variabili d'ambiente (spostato qui per sicurezza su Vercel)
+            const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+            if (!supabaseUrl || !supabaseKey) {
+                console.error("ERRORE CRITICO: Variabili d'ambiente Supabase mancanti in Vercel!");
+                throw new Error("Variabili Supabase non configurate.");
+            }
+
+            const supabase = createClient(supabaseUrl, supabaseKey);
+
             // Salva nel database Supabase
             const { data, error } = await supabase
                 .from('orders')
