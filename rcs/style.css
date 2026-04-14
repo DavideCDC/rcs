@@ -163,7 +163,7 @@ button {
 }
 
 .logo img {
-  height: 70px;
+  height: 90px;
   width: auto;
 }
 
@@ -795,6 +795,128 @@ button {
   transform: translateX(2px);
 }
 
+/* ---------- HISTORY / TIMELINE ---------- */
+.history-section {
+  background: var(--bg-white);
+}
+
+.timeline-wrapper {
+  overflow-x: auto;
+  padding: 20px 0 60px;
+}
+
+.timeline-container {
+  position: relative;
+  min-width: 800px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.timeline-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.timeline-hotspot {
+  position: absolute;
+  width: 40px;
+  height: 50px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 5;
+}
+
+/* Pulsing effect to guide user */
+.timeline-hotspot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  background: var(--accent-blue);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.timeline-hotspot:hover::before {
+  opacity: 0.2;
+  animation: pulseHotspot 1s infinite alternate;
+}
+
+@keyframes pulseHotspot {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  100% { transform: translate(-50%, -50%) scale(1.6); }
+}
+
+.hotspot-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9), 0 0 10px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 6;
+}
+
+.hotspot-tooltip {
+  position: absolute;
+  top: 100%; /* Sotto il punto */
+  left: 50%;
+  transform: translateX(-50%) translateY(-15px);
+  width: 220px;
+  background: var(--text-primary);
+  color: var(--bg-white);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-base);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Tooltip Arrow - punta verso l'ALTO */
+.hotspot-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent transparent var(--text-primary) transparent;
+}
+
+.timeline-hotspot:hover .hotspot-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(10px);
+}
+
+.hotspot-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #60A5FA;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.hotspot-desc {
+  font-size: 0.85rem;
+  color: #E2E8F0;
+  line-height: 1.5;
+}
+
 /* ---------- ACCESSORIES SECTION ---------- */
 .accessories-section {
   background: var(--bg-white);
@@ -829,7 +951,7 @@ button {
 }
 
 .footer-brand .footer-logo img {
-  height: 70px;
+  height: 90px;
   background: white;
   padding: 8px 16px;
   border-radius: 8px;

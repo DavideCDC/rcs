@@ -34,6 +34,31 @@ export default async function handler(req, res) {
             payment_method_types: ['card'],
             line_items: line_items,
             mode: 'payment',
+            shipping_address_collection: {
+                allowed_countries: ['IT'],
+            },
+            shipping_options: [
+                {
+                    shipping_rate_data: {
+                        type: 'fixed_amount',
+                        fixed_amount: {
+                            amount: 1000,
+                            currency: 'eur',
+                        },
+                        display_name: 'Spedizione Standard in Italia',
+                        delivery_estimate: {
+                            minimum: {
+                                unit: 'business_day',
+                                value: 3,
+                            },
+                            maximum: {
+                                unit: 'business_day',
+                                value: 5,
+                            },
+                        },
+                    },
+                },
+            ],
             success_url: `https://${req.headers.host}/success.html`, // Pagina se paga
             cancel_url: `https://${req.headers.host}/index.html`, // Pagina se annulla
         });
