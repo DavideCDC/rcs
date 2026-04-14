@@ -58,6 +58,7 @@ export default async function handler(req, res) {
         
         // Estrai l'indirizzo di spedizione (se presente)
         const shipping = session.shipping_details?.address || {};
+        // Mantengo fullAddress casomai servisse, ma a Supabase passiamo un oggetto JSON dato che si aspetta jsonb
         const fullAddress = `${shipping.line1 || ''} ${shipping.line2 || ''}, ${shipping.postal_code || ''} ${shipping.city || ''}, ${shipping.country || ''}`.trim() || 'Indirizzo non fornito';
 
         // Estrai il Codice Fiscale (dai custom_fields)
@@ -75,10 +76,11 @@ export default async function handler(req, res) {
                         customer_name: customerName,
                         customer_email: customerEmail,
                         tax_id: codiceFiscale,
-                        shipping_address: fullAddress,
+                        // Su Supabase shipping_address è di tipo JSONB, per cui passiamo un oggetto
+                        shipping_address: { testo_completo: fullAddress, ...shipping },
                         total_amount: amountTotal,
-                        status: 'paid', // Puoi gestire gli stati (paid, processing, shipped)
-                        payment_status: session.payment_status
+                        status: 'paid' 
+                        // Nota: rimosso payment_status poiché la colonna non esiste nel database
                     }
                 ]);
 
