@@ -54,6 +54,7 @@ function showToast(message, icon = 'check') {
 function renderProductCard(product, type = 'serbatoio') {
   const card = document.createElement('div');
   card.className = 'product-card reveal';
+  card.style.position = 'relative'; // needed for ::before shimmer
 
   const tags = [];
   if (type === 'serbatoio') {
@@ -130,7 +131,12 @@ async function loadAndRenderProducts() {
       const isAccessorio = product.categories?.slug === 'accessori';
       
       const card = renderProductCard(product, isSerbatoio ? 'serbatoio' : 'accessorio');
-      card.classList.add(`reveal-delay-${(i % 4) + 1}`);
+
+      // Stagger delay: position within its own grid (1-based, max 8)
+      let gridPos = isSerbatoio
+        ? (serbatoiGrid ? serbatoiGrid.childElementCount + 1 : 1)
+        : (accessoriGrid ? accessoriGrid.childElementCount + 1 : 1);
+      card.setAttribute('data-delay', Math.min(gridPos, 8));
 
       if (isSerbatoio && serbatoiGrid) {
         serbatoiGrid.appendChild(card);
@@ -369,19 +375,39 @@ function attachCartListeners() {
 
 // ── Scroll Reveal (Intersection Observer) ──
 function observeRevealElements() {
-  const observer = new IntersectionObserver((entries) => {
+  // Observer for section headers and generic reveal elements
+  const genericObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
+        genericObserver.unobserve(entry.target);
       }
     });
   }, {
-    threshold: 0.1,
+    threshold: 0.12,
+    rootMargin: '0px 0px -60px 0px'
+  });
+
+  // Dedicated observer for product cards with per-card stagger
+  const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // Small extra JS delay layered on top of CSS transition-delay
+        // so cards that load after observer setup still animate correctly
+        const delay = parseInt(entry.target.getAttribute('data-delay') || '1');
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, (delay - 1) * 60); // 0ms, 60ms, 120ms …
+        cardObserver.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.08,
     rootMargin: '0px 0px -40px 0px'
   });
 
-  document.querySelectorAll('.reveal:not(.visible)').forEach(el => observer.observe(el));
+  document.querySelectorAll('.product-card.reveal:not(.visible)').forEach(el => cardObserver.observe(el));
+  document.querySelectorAll('.reveal:not(.product-card):not(.visible)').forEach(el => genericObserver.observe(el));
 }
 
 // ── Header Scroll Effect ──

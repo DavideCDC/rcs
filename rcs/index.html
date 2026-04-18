@@ -70,6 +70,20 @@
     </div>
   </header>
 
+  <!-- ==================== FIXED BACKGROUND VIDEO ==================== -->
+  <div id="fixed-bg-wrap" aria-hidden="true">
+    <video
+      id="fixed-bg-video"
+      src="clip%20rcs%20ingresso%20(1).mp4"
+      autoplay
+      loop
+      muted
+      playsinline
+      preload="auto"
+    ></video>
+    <div id="fixed-bg-overlay"></div>
+  </div>
+
   <!-- ==================== HERO ==================== -->
   <section class="hero" id="hero">
     <div class="hero-grid-pattern"></div>
@@ -101,7 +115,7 @@
 
       <div class="hero-visual">
         <div class="hero-image-wrapper">
-          <img src="assets/images/hero-tank.png" alt="Lino il Bombolino - Serbatoio GPL Compatto RCS" id="hero-image">
+          <video src="clip%20295%20ft.mp4" autoplay loop muted playsinline id="hero-image" style="width: 70%; max-width: 350px; display: block; margin: 0 auto; border-radius: 1rem; object-fit: cover;"></video>
           <div class="hero-deco-ring"></div>
           <div class="hero-deco-ring"></div>
         </div>
@@ -194,6 +208,46 @@
         <div class="skeleton skeleton-card"></div>
         <div class="skeleton skeleton-card"></div>
         <div class="skeleton skeleton-card"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== VIDEO SHOWCASE 1 — Chi Siamo ==================== -->
+  <section class="video-showcase" id="chi-siamo-video">
+    <div class="video-showcase-inner">
+      <video
+        class="video-showcase-bg"
+        src="clip%202%20rcs.mp4"
+        autoplay loop muted playsinline
+      ></video>
+      <div class="video-showcase-overlay"></div>
+      <div class="video-showcase-content container">
+        <div class="video-showcase-text">
+          <div class="section-label" style="color: rgba(255,255,255,0.7);">La Nostra Azienda</div>
+          <h2 class="video-showcase-title">Produzione 100%<br><span>Made in Italy</span></h2>
+          <p class="video-showcase-desc">Dal 2010, RCS Srl progetta e produce ogni serbatoio interamente in Italia. Qualità certificata, esperienza decennale e 14 brevetti nazionali al servizio della sicurezza.</p>
+          <a href="brevetti.html" class="btn btn-glass">Scopri i Brevetti →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== VIDEO SHOWCASE 2 — Installazione ==================== -->
+  <section class="video-showcase video-showcase--right" id="installazione-video">
+    <div class="video-showcase-inner">
+      <video
+        class="video-showcase-bg"
+        src="clip%20rcs%203.mp4"
+        autoplay loop muted playsinline
+      ></video>
+      <div class="video-showcase-overlay"></div>
+      <div class="video-showcase-content container">
+        <div class="video-showcase-text">
+          <div class="section-label" style="color: rgba(255,255,255,0.7);">Facilità d'Uso</div>
+          <h2 class="video-showcase-title">Installazione<br><span>Rapida e Sicura</span></h2>
+          <p class="video-showcase-desc">Il sistema brevettato RCS garantisce un'installazione semplice e veloce, senza necessità di autorizzazione VVF per i modelli fino a 295 litri.</p>
+          <a href="#catalogo" class="btn btn-glass">Vedi il Catalogo →</a>
+        </div>
       </div>
     </div>
   </section>
@@ -317,5 +371,52 @@
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
   </script>
   <script defer src="/_vercel/insights/script.js"></script>
+
+  <!-- ==================== FIXED VIDEO FADE SCRIPT ==================== -->
+  <script>
+    // Fade out the fixed background video when the #catalogo section enters the viewport
+    (function () {
+      const wrap = document.getElementById('fixed-bg-wrap');
+      const catalogo = document.getElementById('catalogo');
+      if (!wrap || !catalogo) return;
+
+      const observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            // When catalogo is entering from below, start fading the video
+            if (entry.isIntersecting) {
+              wrap.style.opacity = '0';
+            } else {
+              wrap.style.opacity = '1';
+            }
+          });
+        },
+        { threshold: 0.08 }
+      );
+      observer.observe(catalogo);
+    })();
+  </script>
+
+  <!-- ==================== TRUST SECTION SCROLL SCRIPT ==================== -->
+  <script>
+    (function () {
+      const trust = document.querySelector('.trust-section');
+      if (!trust) return;
+
+      // Threshold: once the user scrolls past ~70% of the viewport height
+      // (i.e., the hero is mostly out of view), solidify the trust bar
+      function onScroll() {
+        var threshold = window.innerHeight * 0.7;
+        if (window.scrollY > threshold) {
+          trust.classList.add('solid');
+        } else {
+          trust.classList.remove('solid');
+        }
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll(); // run once on load
+    })();
+  </script>
 </body>
 </html>
