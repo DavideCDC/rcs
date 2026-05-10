@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh --version)",
+      "Bash(vercel --version)",
+      "Bash(supabase --version)",
+      "Bash(npm install *)",
+      "Bash(winget install *)",
+      "Bash(wait)",
+      "Bash(where node *)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs\")",
+      "Bash(npm --version)",
+      "PowerShell($env:PATH = \"$env:PATH;C:\\\\Program Files\\\\nodejs\"; npm install -g vercel supabase 2>&1 | Select-String -Pattern \"added|error code\" | Select-Object -Last 10)",
+      "PowerShell(Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force; $env:PATH = \"$env:PATH;C:\\\\Program Files\\\\nodejs\"; npm install -g vercel supabase 2>&1 | Select-String -Pattern \"added|error code\" | Select-Object -Last 5)",
+      "PowerShell(Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force; $env:PATH = \"$env:PATH;C:\\\\Program Files\\\\nodejs\"; npm install -g vercel 2>&1 | Select-Object -Last 15)",
+      "PowerShell(Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force; $env:PATH = \"$env:PATH;C:\\\\Program Files\\\\nodejs\"; npm install -g supabase 2>&1 | Select-Object -Last 10)",
+      "Bash(winget search *)",
+      "Bash(where scoop *)",
+      "Bash(where choco *)",
+      "PowerShell(Set-ExecutionPolicy -Scope CurrentUser Bypass -Force; iex \"& {$\\(irm get.scoop.sh\\)} -RunAsAdmin\" 2>&1 | Select-Object -Last 5)",
+      "PowerShell($env:PATH = \"$env:PATH;$env:USERPROFILE\\\\scoop\\\\shims\"; scoop bucket add supabase https://github.com/supabase/scoop-bucket.git 2>&1 | Select-Object -Last 3; scoop install supabase 2>&1 | Select-Object -Last 5)",
+      "PowerShell($env:PATH = \"$env:PATH;C:\\\\Program Files\\\\nodejs;$env:USERPROFILE\\\\scoop\\\\shims;$env:APPDATA\\\\npm\"; gh --version; vercel --version; supabase --version)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/gh CLI:/c/Program Files \\(x86\\)/GitHub CLI\")",
+      "Read(//c/Users/david/AppData/Local/**)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth login --web 2>&1)",
+      "PowerShell($env:PATH = \"$env:PATH;C:\\\\Program Files\\\\nodejs;$env:APPDATA\\\\npm\"; vercel login 2>&1)",
+      "PowerShell($env:PATH = \"$env:PATH;$env:USERPROFILE\\\\scoop\\\\shims\"; supabase login 2>&1)"
+    ]
+  }
+}
