@@ -494,6 +494,58 @@ function initEvents() {
   });
 }
 
+// ── FAQ Accordion ──
+function initFAQ() {
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+}
+
+// ── Contact Form ──
+function initContactForm() {
+  const form = document.getElementById('contact-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('contact-submit');
+    const successEl = document.getElementById('contact-success');
+
+    const name = form.querySelector('#contact-name').value.trim();
+    const email = form.querySelector('#contact-email').value.trim();
+    const subject = form.querySelector('#contact-subject').value;
+    const message = form.querySelector('#contact-message').value.trim();
+
+    if (!name || !email || !subject || !message) {
+      showToast('Compila tutti i campi obbligatori.', 'check');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Invio in corso...';
+
+    try {
+      await supabaseClient.from('contact_requests').insert([{
+        name, email,
+        phone: form.querySelector('#contact-phone').value.trim() || null,
+        subject, message,
+        created_at: new Date().toISOString()
+      }]);
+    } catch (_) {}
+
+    btn.disabled = false;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/></svg>Invia messaggio`;
+    form.reset();
+    successEl.style.display = 'flex';
+    setTimeout(() => { successEl.style.display = 'none'; }, 5000);
+  });
+}
+
 // ── App Init ──
 document.addEventListener('DOMContentLoaded', async () => {
   initHeaderScroll();
@@ -502,6 +554,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initEvents();
   observeRevealElements();
   loadCart();
+  initFAQ();
+  initContactForm();
 
   await loadAndRenderProducts();
 });
