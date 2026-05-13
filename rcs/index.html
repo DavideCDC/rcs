@@ -79,7 +79,9 @@
       loop
       muted
       playsinline
-      preload="auto"
+      preload="metadata"
+      disablepictureinpicture
+      disableremoteplayback
     ></video>
     <div id="fixed-bg-overlay"></div>
   </div>
@@ -115,7 +117,7 @@
 
       <div class="hero-visual">
         <div class="hero-image-wrapper">
-          <video src="clip%20295%20ft.mp4" autoplay loop muted playsinline id="hero-image" style="width: 70%; max-width: 350px; display: block; margin: 0 auto; border-radius: 1rem; object-fit: cover;"></video>
+          <video src="clip%20295%20ft.mp4" autoplay loop muted playsinline preload="metadata" disablepictureinpicture id="hero-image" style="width: 70%; max-width: 350px; display: block; margin: 0 auto; border-radius: 1rem; object-fit: cover;"></video>
           <div class="hero-deco-ring"></div>
           <div class="hero-deco-ring"></div>
         </div>
@@ -217,8 +219,10 @@
     <div class="video-showcase-inner">
       <video
         class="video-showcase-bg"
-        src="clip%205.mp4"
-        autoplay loop muted playsinline
+        data-src="clip%205.mp4"
+        loop muted playsinline
+        preload="none"
+        disablepictureinpicture disableremoteplayback
       ></video>
       <div class="video-showcase-overlay"></div>
       <div class="video-showcase-content container">
@@ -237,8 +241,10 @@
     <div class="video-showcase-inner">
       <video
         class="video-showcase-bg"
-        src="clip%20rcs%203.mp4"
-        autoplay loop muted playsinline
+        data-src="clip%20rcs%203.mp4"
+        loop muted playsinline
+        preload="none"
+        disablepictureinpicture disableremoteplayback
       ></video>
       <div class="video-showcase-overlay"></div>
       <div class="video-showcase-content container">
@@ -257,8 +263,10 @@
     <div class="video-showcase-inner">
       <video
         class="video-showcase-bg"
-        src="clip%206.mp4"
-        autoplay loop muted playsinline
+        data-src="clip%206.mp4"
+        loop muted playsinline
+        preload="none"
+        disablepictureinpicture disableremoteplayback
       ></video>
       <div class="video-showcase-overlay"></div>
       <div class="video-showcase-content container">

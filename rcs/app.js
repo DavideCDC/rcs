@@ -30,6 +30,24 @@ function formatPrice(price) {
   }).format(price);
 }
 
+// ── HTML/Attr Escape (anti-XSS per dati da Supabase) ──
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Per URL in attributi src/href: blocca javascript: e data: non-image
+function safeUrl(url) {
+  const s = String(url ?? '').trim();
+  if (/^\s*(javascript|vbscript):/i.test(s)) return '';
+  if (/^\s*data:/i.test(s) && !/^\s*data:image\//i.test(s)) return '';
+  return escapeHtml(s);
+}
+
 // ── Toast Notification ──
 function showToast(message, icon = 'check') {
   const container = document.getElementById('toast-container');
@@ -62,34 +80,42 @@ function renderProductCard(product, type = 'serbatoio') {
     if (!product.requires_vvf) tags.push('<span class="product-tag no-vvf">No VVF</span>');
   }
 
+  const safeName = escapeHtml(product.name);
+  const safeDesc = escapeHtml(product.description || '');
+  const safeImg = safeUrl(product.image_url);
+  const safeId = escapeHtml(product.id);
+  const safeType = escapeHtml(type);
+  const safePrice = escapeHtml(product.price);
+  const safeSlug = escapeHtml(product.slug);
+
   card.innerHTML = `
     <div class="product-card-image">
       ${tags.join('')}
-      <img src="${product.image_url}" alt="${product.name}" loading="lazy">
+      <img src="${safeImg}" alt="${safeName}" loading="lazy">
     </div>
     <div class="product-card-body">
-      <h3>${product.name}</h3>
-      <p class="product-desc">${product.description || ''}</p>
+      <h3>${safeName}</h3>
+      <p class="product-desc">${safeDesc}</p>
       <div class="product-price">
         <span class="price-currency">€</span> ${Number(product.price).toLocaleString('it-IT', { minimumFractionDigits: 2 })}
         <span class="price-vat">+ IVA</span>
       </div>
       <div class="product-actions">
         ${product.is_quote_only
-          ? `<button class="btn btn-primary btn-sm btn-quote" data-id="${product.id}">
+          ? `<button class="btn btn-primary btn-sm btn-quote" data-id="${safeId}">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
               </svg>
               Richiedi Preventivo
             </button>`
-          : `<button class="btn btn-primary btn-sm btn-add-cart" data-id="${product.id}" data-type="${type}" data-name="${product.name}" data-price="${product.price}" data-image="${product.image_url}">
+          : `<button class="btn btn-primary btn-sm btn-add-cart" data-id="${safeId}" data-type="${safeType}" data-name="${safeName}" data-price="${safePrice}" data-image="${safeImg}">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
               </svg>
               Aggiungi al carrello
             </button>`
         }
-        <a href="#" class="details-link" data-slug="${product.slug}">
+        <a href="#" class="details-link" data-slug="${safeSlug}">
           Vedi dettagli
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
@@ -307,22 +333,26 @@ function updateCartUI() {
   cartFooter.style.display = 'block';
 
   cart.forEach(item => {
+    const safeId = escapeHtml(item.product_id);
+    const safeName = escapeHtml(item.name);
+    const safeImage = safeUrl(item.image);
+
     const el = document.createElement('div');
     el.className = 'cart-item';
     el.innerHTML = `
       <div class="cart-item-image">
-        <img src="${item.image}" alt="${item.name}">
+        <img src="${safeImage}" alt="${safeName}">
       </div>
       <div class="cart-item-details">
-        <h4>${item.name}</h4>
+        <h4>${safeName}</h4>
         <span class="cart-item-price">${formatPrice(item.price)}</span>
         <div class="cart-item-qty">
-          <button onclick="updateCartQuantity('${item.product_id}', -1)" aria-label="Diminuisci quantità">−</button>
+          <button type="button" data-action="qty-dec" data-id="${safeId}" aria-label="Diminuisci quantità">−</button>
           <span>${item.quantity}</span>
-          <button onclick="updateCartQuantity('${item.product_id}', 1)" aria-label="Aumenta quantità">+</button>
+          <button type="button" data-action="qty-inc" data-id="${safeId}" aria-label="Aumenta quantità">+</button>
         </div>
       </div>
-      <button class="cart-item-remove" onclick="removeFromCart('${item.product_id}')" aria-label="Rimuovi dal carrello">
+      <button type="button" class="cart-item-remove" data-action="remove" data-id="${safeId}" aria-label="Rimuovi dal carrello">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
         </svg>
@@ -371,6 +401,34 @@ function attachCartListeners() {
       setTimeout(() => { btn.style.transform = ''; }, 150);
     });
   });
+}
+
+// ── Lazy-load + Play/Pause Video Showcase ──
+// I video showcase pesano ~20MB combinati: li attiviamo solo quando
+// stanno per entrare nel viewport, e li mettiamo in pausa quando escono.
+function initLazyVideos() {
+  const videos = document.querySelectorAll('video[data-src]');
+  if (!videos.length) return;
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const video = entry.target;
+      if (entry.isIntersecting) {
+        if (!video.src && video.dataset.src) {
+          video.src = video.dataset.src;
+          video.load();
+        }
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => { /* autoplay bloccato dal browser, ok */ });
+        }
+      } else if (!video.paused) {
+        video.pause();
+      }
+    });
+  }, { rootMargin: '200px 0px', threshold: 0.01 });
+
+  videos.forEach(v => io.observe(v));
 }
 
 // ── Scroll Reveal (Intersection Observer) ──
@@ -488,6 +546,21 @@ function initEvents() {
     });
   }
 
+  // Event delegation per qty +/-/remove del carrello (anti-XSS: niente onclick inline)
+  const cartBody = document.getElementById('cart-body');
+  if (cartBody) {
+    cartBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (!id) return;
+      if (action === 'qty-dec') updateCartQuantity(id, -1);
+      else if (action === 'qty-inc') updateCartQuantity(id, 1);
+      else if (action === 'remove') removeFromCart(id);
+    });
+  }
+
   // ESC to close cart
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeCart();
@@ -553,6 +626,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSmoothScroll();
   initEvents();
   observeRevealElements();
+  initLazyVideos();
   loadCart();
   initFAQ();
   initContactForm();
