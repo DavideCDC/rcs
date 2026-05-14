@@ -82,7 +82,11 @@ export default async function handler(req, res) {
         const host = ALLOWED_HOSTS.has(rawHost) ? rawHost : 'rcs-davidegasbarri6-9643s-projects.vercel.app';
 
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
+            // Stripe mostra automaticamente i metodi attivati dal Dashboard
+            // (card, PayPal, Klarna, ecc.) filtrati per paese/valuta/importo.
+            // Per attivare/disattivare metodi non serve toccare il codice.
+            automatic_payment_methods: { enabled: true },
+            locale: 'it',
             line_items,
             mode: 'payment',
             shipping_address_collection: { allowed_countries: ['IT'] },
