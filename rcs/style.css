@@ -1125,6 +1125,17 @@ button {
   color: var(--accent-blue-light);
 }
 
+.footer-bottom .footer-legal .footer-admin-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.footer-bottom .footer-legal .footer-admin-link svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* ---------- CART SIDEBAR ---------- */
 .cart-overlay {
   position: fixed;
