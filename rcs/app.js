@@ -21,6 +21,7 @@ function getSessionId() {
 
 const sessionId = getSessionId();
 let cart = [];
+const productsById = new Map();
 
 // ── Format Price ──
 function formatPrice(price) {
@@ -115,7 +116,7 @@ function renderProductCard(product, type = 'serbatoio') {
               Aggiungi al carrello
             </button>`
         }
-        <a href="#" class="details-link" data-slug="${safeSlug}">
+        <a href="#" class="details-link" data-id="${safeId}" data-slug="${safeSlug}">
           Vedi dettagli
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
@@ -155,7 +156,9 @@ async function loadAndRenderProducts() {
       // Determina il tipo in base alla categoria
       const isSerbatoio = product.categories?.slug === 'serbatoi';
       const isAccessorio = product.categories?.slug === 'accessori';
-      
+
+      productsById.set(product.id, { ...product, _type: isSerbatoio ? 'serbatoio' : 'accessorio' });
+
       const card = renderProductCard(product, isSerbatoio ? 'serbatoio' : 'accessorio');
 
       // Stagger delay: position within its own grid (1-based, max 8)
@@ -364,6 +367,102 @@ function updateCartUI() {
   cartTotalPrice.textContent = formatPrice(getCartTotal());
 }
 
+// ── Product Detail Modal ──
+function openProductModal(product) {
+  const modal = document.getElementById('product-modal');
+  const overlay = document.getElementById('product-modal-overlay');
+  const body = document.getElementById('product-modal-body');
+  if (!modal || !overlay || !body) return;
+
+  const type = product._type || 'serbatoio';
+  const safeName = escapeHtml(product.name);
+  const safeDesc = escapeHtml(product.description || 'Descrizione non disponibile.');
+  const safeImg = safeUrl(product.image_url);
+  const safeId = escapeHtml(product.id);
+  const safePrice = escapeHtml(product.price);
+
+  const tags = [];
+  if (type === 'serbatoio') {
+    if (product.is_patented) tags.push('<span class="product-tag patented">Brevettato</span>');
+    if (!product.requires_vvf) tags.push('<span class="product-tag no-vvf">No VVF</span>');
+  }
+
+  const priceFormatted = (product.price != null && !isNaN(Number(product.price)))
+    ? `<span class="price-currency">€</span> ${Number(product.price).toLocaleString('it-IT', { minimumFractionDigits: 2 })} <span class="price-vat">+ IVA</span>`
+    : 'Su richiesta';
+
+  const actionBtn = product.is_quote_only
+    ? `<button class="btn btn-primary btn-modal-quote" data-id="${safeId}">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+        </svg>
+        Richiedi Preventivo
+      </button>`
+    : `<button class="btn btn-primary btn-modal-add-cart" data-id="${safeId}" data-type="${escapeHtml(type)}" data-name="${safeName}" data-price="${safePrice}" data-image="${safeImg}">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/>
+        </svg>
+        Aggiungi al carrello
+      </button>`;
+
+  body.innerHTML = `
+    <div class="product-modal-image">
+      ${tags.length ? `<div class="product-modal-tags">${tags.join('')}</div>` : ''}
+      <img src="${safeImg}" alt="${safeName}">
+    </div>
+    <div class="product-modal-info">
+      <div class="product-modal-eyebrow">${type === 'serbatoio' ? 'Serbatoio GPL' : 'Accessorio'}</div>
+      <h2 class="product-modal-title" id="product-modal-title">${safeName}</h2>
+      <p class="product-modal-desc">${safeDesc}</p>
+      <div class="product-modal-price">${priceFormatted}</div>
+      <div class="product-modal-actions">
+        ${actionBtn}
+        <a href="#contatti" class="btn btn-secondary btn-modal-contact">Hai domande?</a>
+      </div>
+    </div>
+  `;
+
+  // Wire CTA actions
+  const addBtn = body.querySelector('.btn-modal-add-cart');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const { id, type: t, name, price, image } = addBtn.dataset;
+      addToCart(id, t, name, price, image);
+      closeProductModal();
+      openCart();
+    });
+  }
+  const quoteBtn = body.querySelector('.btn-modal-quote');
+  if (quoteBtn) {
+    quoteBtn.addEventListener('click', () => {
+      richiediPreventivo(quoteBtn.dataset.id);
+    });
+  }
+  const contactBtn = body.querySelector('.btn-modal-contact');
+  if (contactBtn) {
+    contactBtn.addEventListener('click', () => {
+      closeProductModal();
+    });
+  }
+
+  overlay.classList.add('open');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProductModal() {
+  const modal = document.getElementById('product-modal');
+  const overlay = document.getElementById('product-modal-overlay');
+  if (!modal || !overlay) return;
+  modal.classList.remove('open');
+  overlay.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  // Solo se anche il cart è chiuso ripristino lo scroll
+  const cartOpen = document.getElementById('cart-sidebar')?.classList.contains('open');
+  if (!cartOpen) document.body.style.overflow = '';
+}
+
 // ── Cart Sidebar Toggle ──
 function openCart() {
   document.getElementById('cart-sidebar').classList.add('open');
@@ -396,9 +495,17 @@ function attachCartListeners() {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       richiediPreventivo(btn.dataset.id);
-      
+
       btn.style.transform = 'scale(0.95)';
       setTimeout(() => { btn.style.transform = ''; }, 150);
+    });
+  });
+
+  document.querySelectorAll('.details-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const product = productsById.get(link.dataset.id);
+      if (product) openProductModal(product);
     });
   });
 }
@@ -561,10 +668,19 @@ function initEvents() {
     });
   }
 
-  // ESC to close cart
+  // ESC to close cart + product modal
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeCart();
+    if (e.key === 'Escape') {
+      closeCart();
+      closeProductModal();
+    }
   });
+
+  // Product modal close + overlay click
+  const modalClose = document.getElementById('product-modal-close');
+  const modalOverlay = document.getElementById('product-modal-overlay');
+  if (modalClose) modalClose.addEventListener('click', closeProductModal);
+  if (modalOverlay) modalOverlay.addEventListener('click', closeProductModal);
 }
 
 // ── FAQ Accordion ──
