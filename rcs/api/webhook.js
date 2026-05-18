@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         const customerName = session.customer_details?.name || 'Cliente Sconosciuto';
         const customerEmail = session.customer_details?.email || '';
         const amountTotal = session.amount_total / 100; // Da centesimi a euro
-        
+
         // Estrai l'indirizzo di spedizione (se presente)
         const shipping = session.shipping_details?.address || {};
         // Mantengo fullAddress casomai servisse, ma a Supabase passiamo un oggetto JSON dato che si aspetta jsonb
@@ -63,6 +63,22 @@ export default async function handler(req, res) {
         const customFields = session.custom_fields || [];
         const cfField = customFields.find(field => field.key === 'codice_fiscale');
         const codiceFiscale = cfField && cfField.text ? cfField.text.value : null;
+
+        // Recupera line items dalla sessione Stripe (non inclusi di default nell'event)
+        let items = null;
+        try {
+            const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100, expand: ['data.price.product'] });
+            items = lineItems.data.map(li => ({
+                name: li.description || li.price?.product?.name || 'Articolo',
+                quantity: li.quantity,
+                unit_amount: (li.price?.unit_amount ?? 0) / 100,
+                amount_subtotal: (li.amount_subtotal ?? 0) / 100,
+                amount_total: (li.amount_total ?? 0) / 100,
+                product_id: li.price?.product?.id || null
+            }));
+        } catch (e) {
+            console.warn('Impossibile recuperare line_items dalla sessione Stripe:', e.message);
+        }
 
         try {
             // Recupera le variabili d'ambiente (spostato qui per sicurezza su Vercel)
@@ -87,8 +103,9 @@ export default async function handler(req, res) {
                         tax_id: codiceFiscale,
                         // Su Supabase shipping_address è di tipo JSONB, per cui passiamo un oggetto
                         shipping_address: { testo_completo: fullAddress, ...shipping },
+                        items,
                         total_amount: amountTotal,
-                        status: 'paid' 
+                        status: 'paid'
                         // Nota: rimosso payment_status poiché la colonna non esiste nel database
                     }
                 ]);

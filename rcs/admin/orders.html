@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Ordini — RCS Admin</title>
+  <link rel="icon" type="image/png" href="/assets/rcs_logo.png">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <div class="admin-header-left">
+      <a href="/admin/index.html" class="admin-brand">
+        <img src="/assets/rcs_logo.png" alt="">
+        <span>RCS</span>
+        <span class="admin-brand-badge">Admin</span>
+      </a>
+      <nav class="admin-nav">
+        <a href="/admin/index.html">Prodotti</a>
+        <a href="/admin/orders.html" class="active">Ordini</a>
+        <a href="#" aria-disabled="true" title="Disponibile nella prossima fase">Contatti</a>
+      </nav>
+    </div>
+    <div class="admin-header-right">
+      <span class="admin-user" id="admin-user-email">…</span>
+      <button class="btn btn--ghost btn--sm" id="admin-logout" type="button">Esci</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="page-title-row">
+      <div>
+        <h1 class="page-title">Ordini ricevuti</h1>
+        <p class="page-subtitle">Ordini pagati via Stripe con dati cliente, indirizzo e articoli.</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-chips" id="filter-chips">
+        <button class="chip active" data-filter="all" type="button">Tutti</button>
+        <button class="chip" data-filter="paid" type="button">Pagati</button>
+        <button class="chip" data-filter="shipped" type="button">Spediti</button>
+        <button class="chip" data-filter="completed" type="button">Completati</button>
+        <button class="chip" data-filter="cancelled" type="button">Annullati</button>
+      </div>
+      <input type="search" class="search-input" id="search-input" placeholder="Cerca per cliente o email…">
+    </div>
+
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 130px;">Data</th>
+            <th>Cliente</th>
+            <th>Totale</th>
+            <th>Stato</th>
+            <th class="actions">Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody">
+          <tr><td colspan="5" class="table-empty">Caricamento…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    let allOrders = [];
+    let currentFilter = 'all';
+    let currentSearch = '';
+    const expandedIds = new Set();
+
+    const STATUS_LABELS = {
+      paid:      { text: 'Pagato',     cls: 'badge--success' },
+      shipped:   { text: 'Spedito',    cls: 'badge--warn' },
+      completed: { text: 'Completato', cls: 'badge--muted' },
+      cancelled: { text: 'Annullato',  cls: 'badge--muted' },
+    };
+
+    function statusBadge(status) {
+      const s = STATUS_LABELS[status] || { text: status || '—', cls: 'badge--muted' };
+      return `<span class="badge ${s.cls}">${escapeHtml(s.text)}</span>`;
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+        ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function fmtAddress(addr) {
+      if (!addr || typeof addr !== 'object') return '—';
+      const parts = [
+        addr.line1, addr.line2,
+        [addr.postal_code, addr.city].filter(Boolean).join(' '),
+        [addr.state, addr.country].filter(Boolean).join(' ')
+      ].filter(Boolean);
+      const out = parts.join(', ');
+      if (out) return out;
+      if (addr.testo_completo && addr.testo_completo.trim().replace(/,/g, '').trim()) return addr.testo_completo;
+      return '—';
+    }
+
+    function nextActions(status) {
+      // Ritorna i bottoni di transizione disponibili
+      const actions = [];
+      if (status === 'paid')      actions.push({ to: 'shipped',   label: 'Marca spedito',  cls: 'btn--primary' });
+      if (status === 'shipped')   actions.push({ to: 'completed', label: 'Completa',       cls: 'btn--primary' });
+      if (status === 'paid' || status === 'shipped') {
+        actions.push({ to: 'cancelled', label: 'Annulla', cls: 'btn--danger' });
+      }
+      return actions;
+    }
+
+    function renderItemsTable(items) {
+      if (!Array.isArray(items) || !items.length) {
+        return `<p style="color: var(--admin-text-muted); font-size: 0.85rem;">Articoli non registrati (ordine pre-aggiornamento webhook).</p>`;
+      }
+      const rows = items.map(it => `
+        <tr>
+          <td>${escapeHtml(it.name || 'Articolo')}</td>
+          <td style="text-align:center;">${escapeHtml(String(it.quantity ?? 1))}</td>
+          <td style="text-align:right;">${formatPrice(it.unit_amount)}</td>
+          <td style="text-align:right;"><strong>${formatPrice(it.amount_total ?? it.amount_subtotal)}</strong></td>
+        </tr>
+      `).join('');
+      return `
+        <table class="data-table" style="margin: 0;">
+          <thead>
+            <tr>
+              <th>Articolo</th>
+              <th style="text-align:center;">Qtà</th>
+              <th style="text-align:right;">Prezzo</th>
+              <th style="text-align:right;">Subtotale</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderExpandRow(o) {
+      const stripeUrl = o.stripe_session_id
+        ? `https://dashboard.stripe.com/payments/${encodeURIComponent(o.stripe_session_id)}`
+        : null;
+      return `
+        <tr class="order-expand-row" data-expand-for="${escapeHtml(o.id)}">
+          <td colspan="5" style="background: var(--admin-surface-alt); padding: 18px 22px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <div>
+                <div class="form-section-title" style="margin: 0 0 10px;">Articoli</div>
+                ${renderItemsTable(o.items)}
+              </div>
+              <div>
+                <div class="form-section-title" style="margin: 0 0 10px;">Spedizione e cliente</div>
+                <p style="font-size: 0.88rem; line-height: 1.7;">
+                  <strong>${escapeHtml(o.customer_name || '—')}</strong><br>
+                  <a href="mailto:${escapeHtml(o.customer_email || '')}">${escapeHtml(o.customer_email || '—')}</a><br>
+                  ${o.tax_id ? `CF: <code>${escapeHtml(o.tax_id)}</code><br>` : ''}
+                  ${escapeHtml(fmtAddress(o.shipping_address))}
+                </p>
+                ${stripeUrl ? `<p style="margin-top: 10px;"><a href="${escapeHtml(stripeUrl)}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">Apri su Stripe ↗</a></p>` : ''}
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderRow(o) {
+      const expanded = expandedIds.has(o.id);
+      const actions = nextActions(o.status);
+      const actionsHtml = actions.map(a =>
+        `<button class="btn ${a.cls} btn--sm" data-action="status" data-id="${escapeHtml(o.id)}" data-to="${escapeHtml(a.to)}" type="button">${escapeHtml(a.label)}</button>`
+      ).join('');
+
+      return `
+        <tr data-id="${escapeHtml(o.id)}" data-action="expand" style="cursor: pointer;">
+          <td>${escapeHtml(fmtDate(o.created_at))}</td>
+          <td>
+            <strong>${escapeHtml(o.customer_name || '—')}</strong>
+            <div style="font-size: 0.78rem; color: var(--admin-text-muted);">${escapeHtml(o.customer_email || '')}</div>
+          </td>
+          <td><strong>${formatPrice(o.total_amount)}</strong></td>
+          <td>${statusBadge(o.status)}</td>
+          <td class="actions">${actionsHtml}</td>
+        </tr>
+        ${expanded ? renderExpandRow(o) : ''}
+      `;
+    }
+
+    function applyFiltersAndRender() {
+      const tbody = document.getElementById('orders-tbody');
+      let list = allOrders.slice();
+
+      if (currentFilter !== 'all') {
+        list = list.filter(o => (o.status || 'paid') === currentFilter);
+      }
+      if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        list = list.filter(o =>
+          (o.customer_name || '').toLowerCase().includes(q) ||
+          (o.customer_email || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Nessun ordine.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(renderRow).join('');
+    }
+
+    async function loadOrders() {
+      const tbody = document.getElementById('orders-tbody');
+      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Caricamento…</td></tr>`;
+
+      const { data, error } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Errore: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+      }
+      allOrders = data || [];
+      applyFiltersAndRender();
+    }
+
+    async function updateStatus(id, newStatus) {
+      const o = allOrders.find(x => x.id === id);
+      if (!o) return;
+      const confirmMsg = newStatus === 'cancelled'
+        ? `Annullare l'ordine di "${o.customer_name}" (${formatPrice(o.total_amount)})?`
+        : null;
+      if (confirmMsg && !confirm(confirmMsg)) return;
+
+      const { error } = await supabaseAdmin.from('orders').update({ status: newStatus }).eq('id', id);
+      if (error) { showToast('Errore: ' + error.message, 'error'); return; }
+      o.status = newStatus;
+      showToast('Stato aggiornato', 'success');
+      applyFiltersAndRender();
+    }
+
+    function toggleExpand(id) {
+      if (expandedIds.has(id)) expandedIds.delete(id);
+      else expandedIds.add(id);
+      applyFiltersAndRender();
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const session = await requireAuth();
+      if (!session) return;
+      mountAdminHeader(session);
+
+      document.getElementById('filter-chips').addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentFilter = chip.dataset.filter;
+        applyFiltersAndRender();
+      });
+
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        currentSearch = e.target.value.trim();
+        applyFiltersAndRender();
+      });
+
+      document.getElementById('orders-tbody').addEventListener('click', (e) => {
+        const statusBtn = e.target.closest('button[data-action="status"]');
+        if (statusBtn) {
+          e.stopPropagation();
+          updateStatus(statusBtn.dataset.id, statusBtn.dataset.to);
+          return;
+        }
+        const expandRow = e.target.closest('tr[data-action="expand"]');
+        if (expandRow) toggleExpand(expandRow.dataset.id);
+      });
+
+      await loadOrders();
+    });
+  </script>
+</body>
+</html>
