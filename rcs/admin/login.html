@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Accesso Admin — RCS Srl</title>
+  <link rel="icon" type="image/png" href="/assets/rcs_logo.png">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="login-logo"><img src="/assets/rcs_logo.png" alt="RCS Srl"></div>
+    <h1 class="login-title">Area amministrativa</h1>
+    <p class="login-subtitle">Accedi con le tue credenziali per gestire il catalogo.</p>
+
+    <form id="login-form" novalidate>
+      <label class="field">
+        <span class="field-label">Email</span>
+        <input class="field-input" id="login-email" type="email" autocomplete="username" required>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Password</span>
+        <input class="field-input" id="login-password" type="password" autocomplete="current-password" required>
+      </label>
+
+      <div class="field-error" id="login-error"></div>
+
+      <button type="submit" class="btn btn--primary" id="login-submit">Accedi</button>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    (async () => {
+      // Se già loggato, redirect alla dashboard
+      const { data: { session } } = await supabaseAdmin.auth.getSession();
+      if (session) window.location.href = '/admin/index.html';
+    })();
+
+    const form = document.getElementById('login-form');
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-submit');
+
+    function showErr(msg) {
+      errEl.textContent = msg;
+      errEl.classList.add('show');
+    }
+    function clearErr() {
+      errEl.classList.remove('show');
+      errEl.textContent = '';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErr();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!email || !password) {
+        showErr('Inserisci email e password.');
+        return;
+      }
+
+      btn.disabled = true;
+      const original = btn.innerHTML;
+      btn.innerHTML = '<span class="loader-inline"></span> Accesso...';
+
+      const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+      if (error) {
+        showErr(error.message === 'Invalid login credentials' ? 'Email o password errati.' : error.message);
+        btn.disabled = false;
+        btn.innerHTML = original;
+        return;
+      }
+
+      window.location.href = '/admin/index.html';
+    });
+  </script>
+</body>
+</html>

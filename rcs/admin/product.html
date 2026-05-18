@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Prodotto — RCS Admin</title>
+  <link rel="icon" type="image/png" href="/assets/rcs_logo.png">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <div class="admin-header-left">
+      <a href="/admin/index.html" class="admin-brand">
+        <img src="/assets/rcs_logo.png" alt="">
+        <span>RCS</span>
+        <span class="admin-brand-badge">Admin</span>
+      </a>
+      <nav class="admin-nav">
+        <a href="/admin/index.html" class="active">Prodotti</a>
+        <a href="#" aria-disabled="true">Ordini</a>
+        <a href="#" aria-disabled="true">Contatti</a>
+      </nav>
+    </div>
+    <div class="admin-header-right">
+      <span class="admin-user" id="admin-user-email">…</span>
+      <button class="btn btn--ghost btn--sm" id="admin-logout" type="button">Esci</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="page-title-row">
+      <div>
+        <h1 class="page-title" id="page-title">Nuovo prodotto</h1>
+        <p class="page-subtitle"><a href="/admin/index.html">← Torna al catalogo</a></p>
+      </div>
+    </div>
+
+    <form id="product-form" class="form-card" novalidate>
+      <div class="form-grid">
+        <div class="form-section-title">Informazioni generali</div>
+
+        <label class="field">
+          <span class="field-label">Nome *</span>
+          <input class="field-input" id="f-name" type="text" required maxlength="120">
+        </label>
+
+        <label class="field">
+          <span class="field-label">Slug *</span>
+          <input class="field-input" id="f-slug" type="text" required maxlength="120" pattern="[a-z0-9-]+">
+          <span class="field-help">Identificatore URL (solo lettere minuscole, numeri e trattini). Generato automaticamente dal nome.</span>
+        </label>
+
+        <label class="field field--full">
+          <span class="field-label">Descrizione</span>
+          <textarea class="field-textarea" id="f-description" maxlength="2000"></textarea>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Categoria *</span>
+          <select class="field-select" id="f-category" required>
+            <option value="">Seleziona…</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Prezzo (€)</span>
+          <input class="field-input" id="f-price" type="number" step="0.01" min="0" placeholder="es. 1250.00">
+          <span class="field-help">Lascia vuoto per prodotti "su richiesta".</span>
+        </label>
+
+        <div class="form-section-title">Visibilità</div>
+
+        <label class="checkbox field" style="margin-bottom: 0;">
+          <input type="checkbox" id="f-active" checked>
+          <span>Attivo sul sito</span>
+        </label>
+
+        <label class="checkbox field" style="margin-bottom: 0;">
+          <input type="checkbox" id="f-quote-only">
+          <span>Solo richiesta preventivo (no carrello)</span>
+        </label>
+
+        <div class="form-section-title">Immagine</div>
+
+        <div class="field field--full" style="margin-bottom: 0;">
+          <div class="image-picker">
+            <div class="image-picker-tabs">
+              <button type="button" class="image-picker-tab active" data-mode="upload">Carica file</button>
+              <button type="button" class="image-picker-tab" data-mode="url">URL esterno</button>
+            </div>
+            <div class="image-picker-body">
+              <div id="picker-upload">
+                <label class="image-dropzone" id="dropzone">
+                  <input type="file" id="f-file" accept="image/png,image/jpeg,image/webp,image/avif" hidden>
+                  <div>Trascina qui un'immagine oppure <strong>clicca per scegliere</strong></div>
+                  <div style="margin-top:6px; font-size:0.75rem;">PNG, JPG, WebP o AVIF · max 5 MB</div>
+                </label>
+              </div>
+              <div id="picker-url" style="display: none;">
+                <input class="field-input" id="f-image-url" type="url" placeholder="https://esempio.com/immagine.jpg">
+              </div>
+
+              <div class="image-preview" id="image-preview">
+                <button type="button" class="image-preview-remove" id="image-preview-remove" aria-label="Rimuovi immagine">×</button>
+                <img id="image-preview-img" alt="">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-error" id="form-error"></div>
+
+      <div class="form-actions">
+        <a href="/admin/index.html" class="btn btn--ghost">Annulla</a>
+        <button type="submit" class="btn btn--primary" id="form-submit">Salva prodotto</button>
+      </div>
+    </form>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    let editingId = null;          // null = nuovo
+    let categories = [];
+    let currentImageUrl = '';      // URL finale del prodotto (storage o esterno)
+    let pendingFile = null;        // file da caricare al submit (modalità upload)
+    let pickerMode = 'upload';
+
+    const form = document.getElementById('product-form');
+    const errEl = document.getElementById('form-error');
+    const fName = document.getElementById('f-name');
+    const fSlug = document.getElementById('f-slug');
+    const fDesc = document.getElementById('f-description');
+    const fCat = document.getElementById('f-category');
+    const fPrice = document.getElementById('f-price');
+    const fActive = document.getElementById('f-active');
+    const fQuoteOnly = document.getElementById('f-quote-only');
+    const fFile = document.getElementById('f-file');
+    const fImageUrl = document.getElementById('f-image-url');
+    const submitBtn = document.getElementById('form-submit');
+
+    const preview = document.getElementById('image-preview');
+    const previewImg = document.getElementById('image-preview-img');
+    const dropzone = document.getElementById('dropzone');
+
+    function showErr(msg) {
+      errEl.textContent = msg;
+      errEl.classList.add('show');
+    }
+    function clearErr() {
+      errEl.classList.remove('show');
+      errEl.textContent = '';
+    }
+
+    function setPreview(url) {
+      if (!url) {
+        preview.classList.remove('show');
+        previewImg.src = '';
+        return;
+      }
+      previewImg.src = url;
+      preview.classList.add('show');
+    }
+
+    function switchPickerMode(mode) {
+      pickerMode = mode;
+      document.querySelectorAll('.image-picker-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+      document.getElementById('picker-upload').style.display = mode === 'upload' ? '' : 'none';
+      document.getElementById('picker-url').style.display = mode === 'url' ? '' : 'none';
+    }
+
+    async function loadCategories() {
+      const { data, error } = await supabaseAdmin.from('categories').select('id, name, slug').order('name');
+      if (error) return;
+      categories = data || [];
+      fCat.innerHTML = '<option value="">Seleziona…</option>' +
+        categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+    }
+
+    async function loadProduct(id) {
+      const { data, error } = await supabaseAdmin.from('products').select('*').eq('id', id).single();
+      if (error || !data) {
+        showToast('Prodotto non trovato.', 'error');
+        setTimeout(() => { window.location.href = '/admin/index.html'; }, 1200);
+        return;
+      }
+      editingId = data.id;
+      document.getElementById('page-title').textContent = 'Modifica prodotto';
+      fName.value = data.name || '';
+      fSlug.value = data.slug || '';
+      fDesc.value = data.description || '';
+      fCat.value = data.category_id || '';
+      fPrice.value = data.price ?? '';
+      fActive.checked = data.is_active !== false;
+      fQuoteOnly.checked = !!data.is_quote_only;
+      currentImageUrl = data.image_url || '';
+      if (currentImageUrl) {
+        // Se URL non punta a Supabase storage del nostro bucket, lo trattiamo come "url esterno"
+        const isStorage = currentImageUrl.includes('/storage/v1/object/public/product-images/');
+        switchPickerMode(isStorage ? 'upload' : 'url');
+        if (!isStorage) fImageUrl.value = currentImageUrl;
+        setPreview(currentImageUrl);
+      }
+    }
+
+    async function uploadImage(file) {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { data, error } = await supabaseAdmin.storage
+        .from('product-images')
+        .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+      if (error) throw error;
+      const { data: pub } = supabaseAdmin.storage.from('product-images').getPublicUrl(data.path);
+      return pub.publicUrl;
+    }
+
+    async function onSubmit(e) {
+      e.preventDefault();
+      clearErr();
+
+      const name = fName.value.trim();
+      const slug = fSlug.value.trim();
+      const category_id = fCat.value || null;
+      const description = fDesc.value.trim() || null;
+      const priceRaw = fPrice.value.trim();
+      const price = priceRaw === '' ? null : Number(priceRaw);
+      const is_active = fActive.checked;
+      const is_quote_only = fQuoteOnly.checked;
+
+      if (!name) return showErr('Il nome è obbligatorio.');
+      if (!slug) return showErr('Lo slug è obbligatorio.');
+      if (!/^[a-z0-9-]+$/.test(slug)) return showErr('Lo slug può contenere solo lettere minuscole, numeri e trattini.');
+      if (!category_id) return showErr('Seleziona una categoria.');
+      if (priceRaw !== '' && (isNaN(price) || price < 0)) return showErr('Prezzo non valido.');
+
+      submitBtn.disabled = true;
+      const orig = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<span class="loader-inline"></span> Salvataggio...';
+
+      try {
+        let image_url = currentImageUrl;
+
+        if (pickerMode === 'upload' && pendingFile) {
+          image_url = await uploadImage(pendingFile);
+        } else if (pickerMode === 'url') {
+          image_url = fImageUrl.value.trim() || null;
+        }
+
+        const payload = { name, slug, description, category_id, price, is_active, is_quote_only, image_url };
+
+        if (editingId) {
+          const { error } = await supabaseAdmin.from('products').update(payload).eq('id', editingId);
+          if (error) throw error;
+          showToast('Prodotto aggiornato', 'success');
+        } else {
+          const { error } = await supabaseAdmin.from('products').insert([payload]);
+          if (error) throw error;
+          showToast('Prodotto creato', 'success');
+        }
+
+        setTimeout(() => { window.location.href = '/admin/index.html'; }, 700);
+      } catch (err) {
+        showErr(err.message || 'Errore durante il salvataggio.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = orig;
+      }
+    }
+
+    function bindEvents() {
+      // Auto-slug dal nome se slug è vuoto o segue il nome
+      let userEditedSlug = false;
+      fSlug.addEventListener('input', () => { userEditedSlug = true; });
+      fName.addEventListener('input', () => {
+        if (!userEditedSlug || !fSlug.value) {
+          fSlug.value = slugify(fName.value);
+        }
+      });
+
+      // Picker tabs
+      document.querySelectorAll('.image-picker-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          switchPickerMode(tab.dataset.mode);
+          if (tab.dataset.mode === 'url' && fImageUrl.value) {
+            setPreview(safeUrl(fImageUrl.value));
+          } else if (tab.dataset.mode === 'upload' && pendingFile) {
+            setPreview(URL.createObjectURL(pendingFile));
+          }
+        });
+      });
+
+      // File picker
+      dropzone.addEventListener('click', () => fFile.click());
+      fFile.addEventListener('change', () => {
+        const f = fFile.files[0];
+        if (!f) return;
+        pendingFile = f;
+        setPreview(URL.createObjectURL(f));
+      });
+
+      // Drag & drop
+      ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, (e) => {
+        e.preventDefault(); dropzone.classList.add('dragover');
+      }));
+      ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, (e) => {
+        e.preventDefault(); dropzone.classList.remove('dragover');
+      }));
+      dropzone.addEventListener('drop', (e) => {
+        const f = e.dataTransfer?.files?.[0];
+        if (!f || !f.type.startsWith('image/')) return;
+        pendingFile = f;
+        setPreview(URL.createObjectURL(f));
+      });
+
+      // URL preview
+      fImageUrl.addEventListener('input', () => {
+        const v = fImageUrl.value.trim();
+        if (v) setPreview(safeUrl(v));
+        else setPreview('');
+      });
+
+      // Rimuovi immagine
+      document.getElementById('image-preview-remove').addEventListener('click', () => {
+        pendingFile = null;
+        currentImageUrl = '';
+        fFile.value = '';
+        fImageUrl.value = '';
+        setPreview('');
+      });
+
+      form.addEventListener('submit', onSubmit);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const session = await requireAuth();
+      if (!session) return;
+      mountAdminHeader(session);
+
+      bindEvents();
+      await loadCategories();
+
+      const id = getQueryParam('id');
+      if (id) await loadProduct(id);
+    });
+  </script>
+</body>
+</html>

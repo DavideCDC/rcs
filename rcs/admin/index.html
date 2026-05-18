@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Dashboard — RCS Admin</title>
+  <link rel="icon" type="image/png" href="/assets/rcs_logo.png">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <div class="admin-header-left">
+      <a href="/admin/index.html" class="admin-brand">
+        <img src="/assets/rcs_logo.png" alt="">
+        <span>RCS</span>
+        <span class="admin-brand-badge">Admin</span>
+      </a>
+      <nav class="admin-nav">
+        <a href="/admin/index.html" class="active">Prodotti</a>
+        <a href="#" aria-disabled="true" title="Disponibile nella prossima fase">Ordini</a>
+        <a href="#" aria-disabled="true" title="Disponibile nella prossima fase">Contatti</a>
+      </nav>
+    </div>
+    <div class="admin-header-right">
+      <span class="admin-user" id="admin-user-email">…</span>
+      <button class="btn btn--ghost btn--sm" id="admin-logout" type="button">Esci</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="page-title-row">
+      <div>
+        <h1 class="page-title">Catalogo prodotti</h1>
+        <p class="page-subtitle">Gestisci serbatoi GPL e accessori visibili sul sito.</p>
+      </div>
+      <a href="/admin/product.html" class="btn btn--primary">+ Nuovo prodotto</a>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-chips" id="filter-chips">
+        <button class="chip active" data-filter="all" type="button">Tutti</button>
+        <button class="chip" data-filter="serbatoi" type="button">Serbatoi</button>
+        <button class="chip" data-filter="accessori" type="button">Accessori</button>
+        <button class="chip" data-filter="inactive" type="button">Disattivati</button>
+      </div>
+      <input type="search" class="search-input" id="search-input" placeholder="Cerca per nome…">
+    </div>
+
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 32px;"></th>
+            <th style="width: 60px;">Foto</th>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Prezzo</th>
+            <th>Stato</th>
+            <th class="actions">Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="products-tbody">
+          <tr><td colspan="7" class="table-empty">Caricamento…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    let allProducts = [];
+    let currentFilter = 'all';
+    let currentSearch = '';
+
+    function renderRow(p) {
+      const isActive = p.is_active !== false;
+      const categoryName = p.categories?.name || '—';
+      const categorySlug = p.categories?.slug || '';
+      const img = safeUrl(p.image_url);
+      const thumb = img
+        ? `<img class="thumb" src="${img}" alt="" loading="lazy">`
+        : `<span class="thumb-placeholder">—</span>`;
+
+      return `
+        <tr data-id="${escapeHtml(p.id)}">
+          <td></td>
+          <td>${thumb}</td>
+          <td>
+            <strong>${escapeHtml(p.name)}</strong>
+            ${p.is_quote_only ? '<span class="badge badge--warn" style="margin-left:8px;">Preventivo</span>' : ''}
+          </td>
+          <td>${escapeHtml(categoryName)}</td>
+          <td>${formatPrice(p.price)}</td>
+          <td>${isActive
+            ? '<span class="badge badge--success">Attivo</span>'
+            : '<span class="badge badge--muted">Disattivato</span>'}</td>
+          <td class="actions">
+            <a class="btn btn--ghost btn--sm" href="/admin/product.html?id=${encodeURIComponent(p.id)}">Modifica</a>
+            <button class="btn btn--ghost btn--sm" data-action="toggle" data-id="${escapeHtml(p.id)}" type="button">${isActive ? 'Disattiva' : 'Riattiva'}</button>
+            <button class="btn btn--danger btn--sm" data-action="delete" data-id="${escapeHtml(p.id)}" type="button">Elimina</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function applyFiltersAndRender() {
+      const tbody = document.getElementById('products-tbody');
+      let list = allProducts.slice();
+
+      if (currentFilter === 'serbatoi') list = list.filter(p => p.categories?.slug === 'serbatoi' && p.is_active !== false);
+      else if (currentFilter === 'accessori') list = list.filter(p => p.categories?.slug === 'accessori' && p.is_active !== false);
+      else if (currentFilter === 'inactive') list = list.filter(p => p.is_active === false);
+      else list = list.filter(p => p.is_active !== false);
+
+      if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        list = list.filter(p => (p.name || '').toLowerCase().includes(q));
+      }
+
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nessun prodotto.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(renderRow).join('');
+    }
+
+    async function loadProducts() {
+      const tbody = document.getElementById('products-tbody');
+      tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Caricamento…</td></tr>`;
+
+      const { data, error } = await supabaseAdmin
+        .from('products')
+        .select('*, categories(name, slug)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Errore: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+      }
+      allProducts = data || [];
+      applyFiltersAndRender();
+    }
+
+    async function handleToggle(id) {
+      const product = allProducts.find(p => p.id === id);
+      if (!product) return;
+      const nextActive = !(product.is_active !== false);
+
+      const { error } = await supabaseAdmin
+        .from('products')
+        .update({ is_active: nextActive })
+        .eq('id', id);
+
+      if (error) {
+        showToast('Errore: ' + error.message, 'error');
+        return;
+      }
+      product.is_active = nextActive;
+      showToast(nextActive ? 'Prodotto riattivato' : 'Prodotto disattivato', 'success');
+      applyFiltersAndRender();
+    }
+
+    async function handleDelete(id) {
+      const product = allProducts.find(p => p.id === id);
+      if (!product) return;
+      const ok = confirm(`Eliminare definitivamente "${product.name}"?\n\nL'operazione non può essere annullata. Se vuoi solo nasconderlo dal sito usa "Disattiva".`);
+      if (!ok) return;
+
+      const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
+      if (error) {
+        showToast('Errore: ' + error.message, 'error');
+        return;
+      }
+      allProducts = allProducts.filter(p => p.id !== id);
+      showToast('Prodotto eliminato', 'success');
+      applyFiltersAndRender();
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const session = await requireAuth();
+      if (!session) return;
+      mountAdminHeader(session);
+
+      // Filter chips
+      document.getElementById('filter-chips').addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentFilter = chip.dataset.filter;
+        applyFiltersAndRender();
+      });
+
+      // Search
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        currentSearch = e.target.value.trim();
+        applyFiltersAndRender();
+      });
+
+      // Row action delegation
+      document.getElementById('products-tbody').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'toggle') handleToggle(id);
+        else if (action === 'delete') handleDelete(id);
+      });
+
+      await loadProducts();
+    });
+  </script>
+</body>
+</html>
