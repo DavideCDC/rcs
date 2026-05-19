@@ -511,6 +511,10 @@ function attachCartListeners() {
 }
 
 // ── Play/Pause Video Showcase on scroll ──
+// I video hanno src+autoplay nell'HTML: il browser li gestisce nativamente.
+// Qui mettiamo solo in pausa quando escono dal viewport per risparmiare CPU/batteria,
+// e riprendiamo quando rientrano. Evitiamo di chiamare pause() prima che siano
+// mai stati visti, altrimenti interrompiamo l'autoplay nativo.
 function initLazyVideos() {
   const videos = document.querySelectorAll('video.video-showcase-bg');
   if (!videos.length) return;
@@ -519,8 +523,9 @@ function initLazyVideos() {
     entries.forEach(entry => {
       const video = entry.target;
       if (entry.isIntersecting) {
-        video.play().catch(() => {});
-      } else {
+        video.dataset.seen = '1';
+        if (video.paused) video.play().catch(() => {});
+      } else if (video.dataset.seen === '1') {
         video.pause();
       }
     });
