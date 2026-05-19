@@ -510,29 +510,16 @@ function attachCartListeners() {
   });
 }
 
-// ── Lazy-load + Play/Pause Video Showcase ──
-// I video showcase pesano ~20MB combinati: li attiviamo solo quando
-// stanno per entrare nel viewport, e li mettiamo in pausa quando escono.
+// ── Play/Pause Video Showcase on scroll ──
 function initLazyVideos() {
-  const videos = document.querySelectorAll('video[data-src]');
+  const videos = document.querySelectorAll('video.video-showcase-bg');
   if (!videos.length) return;
 
   const io = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const video = entry.target;
       if (entry.isIntersecting) {
-        if (!video.dataset.loaded && video.dataset.src) {
-          // Prima volta: imposta src e aspetta canplay prima di riprodurre
-          video.dataset.loaded = '1';
-          video.src = video.dataset.src;
-          video.load();
-          video.addEventListener('canplay', () => {
-            video.play().catch(() => {});
-          }, { once: true });
-        } else if (video.paused) {
-          // Rientra nel viewport dopo una pausa
-          video.play().catch(() => {});
-        }
+        video.play().catch(() => {});
       } else {
         video.pause();
       }
