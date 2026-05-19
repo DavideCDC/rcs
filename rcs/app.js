@@ -521,15 +521,19 @@ function initLazyVideos() {
     entries.forEach(entry => {
       const video = entry.target;
       if (entry.isIntersecting) {
-        if (!video.src && video.dataset.src) {
+        if (!video.dataset.loaded && video.dataset.src) {
+          // Prima volta: imposta src e aspetta canplay prima di riprodurre
+          video.dataset.loaded = '1';
           video.src = video.dataset.src;
           video.load();
+          video.addEventListener('canplay', () => {
+            video.play().catch(() => {});
+          }, { once: true });
+        } else if (video.paused) {
+          // Rientra nel viewport dopo una pausa
+          video.play().catch(() => {});
         }
-        const playPromise = video.play();
-        if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise.catch(() => { /* autoplay bloccato dal browser, ok */ });
-        }
-      } else if (!video.paused) {
+      } else {
         video.pause();
       }
     });
