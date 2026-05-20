@@ -81,6 +81,14 @@
           <span>Solo richiesta preventivo (no carrello)</span>
         </label>
 
+        <div class="form-section-title" id="tech-section-title">Caratteristiche tecniche</div>
+
+        <label class="checkbox field" style="margin-bottom: 0;" id="f-requires-vvf-row">
+          <input type="checkbox" id="f-requires-vvf" checked>
+          <span>Richiede autorizzazione VVF (Vigili del Fuoco)</span>
+          <span class="field-help" style="display: block; margin-top: 4px;">Disattiva per i modelli che NON richiedono autorizzazione — verrà mostrato il tag "No VVF" sul sito (es. Lino 295).</span>
+        </label>
+
         <div class="form-section-title">Immagine</div>
 
         <div class="field field--full" style="margin-bottom: 0;">
@@ -137,6 +145,9 @@
     const fPrice = document.getElementById('f-price');
     const fActive = document.getElementById('f-active');
     const fQuoteOnly = document.getElementById('f-quote-only');
+    const fRequiresVvf = document.getElementById('f-requires-vvf');
+    const fRequiresVvfRow = document.getElementById('f-requires-vvf-row');
+    const techSectionTitle = document.getElementById('tech-section-title');
     const fFile = document.getElementById('f-file');
     const fImageUrl = document.getElementById('f-image-url');
     const submitBtn = document.getElementById('form-submit');
@@ -179,6 +190,14 @@
         categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
     }
 
+    // Il campo VVF ha senso solo per i serbatoi, non per gli accessori (torrini, cappellotti)
+    function updateTechSectionVisibility() {
+      const selected = categories.find(c => c.id === fCat.value);
+      const isSerbatoio = selected?.slug === 'serbatoi';
+      techSectionTitle.style.display = isSerbatoio ? '' : 'none';
+      fRequiresVvfRow.style.display = isSerbatoio ? '' : 'none';
+    }
+
     async function loadProduct(id) {
       const { data, error } = await supabaseAdmin.from('products').select('*').eq('id', id).single();
       if (error || !data) {
@@ -195,6 +214,8 @@
       fPrice.value = data.price ?? '';
       fActive.checked = data.is_active !== false;
       fQuoteOnly.checked = !!data.is_quote_only;
+      fRequiresVvf.checked = data.requires_vvf !== false;
+      updateTechSectionVisibility();
       currentImageUrl = data.image_url || '';
       if (currentImageUrl) {
         // Se URL non punta a Supabase storage del nostro bucket, lo trattiamo come "url esterno"
@@ -228,6 +249,7 @@
       const price = priceRaw === '' ? null : Number(priceRaw);
       const is_active = fActive.checked;
       const is_quote_only = fQuoteOnly.checked;
+      const requires_vvf = fRequiresVvf.checked;
 
       if (!name) return showErr('Il nome è obbligatorio.');
       if (!slug) return showErr('Lo slug è obbligatorio.');
@@ -248,7 +270,7 @@
           image_url = fImageUrl.value.trim() || null;
         }
 
-        const payload = { name, slug, description, category_id, price, is_active, is_quote_only, image_url };
+        const payload = { name, slug, description, category_id, price, is_active, is_quote_only, requires_vvf, image_url };
 
         if (editingId) {
           const { error } = await supabaseAdmin.from('products').update(payload).eq('id', editingId);
@@ -277,6 +299,9 @@
           fSlug.value = slugify(fName.value);
         }
       });
+
+      // Mostra/nascondi sezione tecnica al cambio categoria
+      fCat.addEventListener('change', updateTechSectionVisibility);
 
       // Picker tabs
       document.querySelectorAll('.image-picker-tab').forEach(tab => {
@@ -339,6 +364,7 @@
 
       bindEvents();
       await loadCategories();
+      updateTechSectionVisibility();
 
       const id = getQueryParam('id');
       if (id) await loadProduct(id);
