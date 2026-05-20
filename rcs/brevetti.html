@@ -61,7 +61,7 @@
         Sicurezza, compattezza e qualità Made in Italy in ogni dettaglio.
       </p>
       <div class="patents-hero-actions">
-        <a href="#brochure" class="btn btn-primary">
+        <a href="assets/brochure-rcs.pdf" download="RCS-14-Brevetti.pdf" class="btn btn-primary">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
           </svg>
@@ -310,7 +310,7 @@
           </p>
         </div>
         <div class="brochure-card-actions">
-          <a href="#" class="btn btn-primary brochure-cta-download" id="brochure-download-link" aria-disabled="true" title="Brochure in arrivo">
+          <a href="assets/brochure-rcs.pdf" download="RCS-14-Brevetti.pdf" class="btn btn-primary brochure-cta-download" id="brochure-download-link">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
             </svg>
@@ -467,25 +467,5 @@
     })();
   </script>
 
-  <!-- Brochure download placeholder feedback -->
-  <script>
-    (function () {
-      const link = document.getElementById('brochure-download-link');
-      if (!link) return;
-      link.addEventListener('click', (e) => {
-        if (link.getAttribute('aria-disabled') === 'true') {
-          e.preventDefault();
-          const toast = document.querySelector('.toast-container');
-          if (toast) {
-            const t = document.createElement('div');
-            t.className = 'toast';
-            t.innerHTML = '<span>La brochure sarà presto disponibile. Contattaci per riceverla via email.</span>';
-            toast.appendChild(t);
-            setTimeout(() => { t.classList.add('removing'); setTimeout(() => t.remove(), 300); }, 3200);
-          }
-        }
-      });
-    })();
-  </script>
 </body>
 </html>
