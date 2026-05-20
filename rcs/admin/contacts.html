@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Contatti — RCS Admin</title>
+  <link rel="icon" type="image/png" href="/assets/rcs_logo.png">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <div class="admin-header-left">
+      <a href="/admin/index.html" class="admin-brand">
+        <img src="/assets/rcs_logo.png" alt="">
+        <span>RCS</span>
+        <span class="admin-brand-badge">Admin</span>
+      </a>
+      <nav class="admin-nav">
+        <a href="/admin/index.html">Prodotti</a>
+        <a href="/admin/orders.html">Ordini</a>
+        <a href="/admin/contacts.html" class="active">Contatti</a>
+      </nav>
+    </div>
+    <div class="admin-header-right">
+      <span class="admin-user" id="admin-user-email">…</span>
+      <button class="btn btn--ghost btn--sm" id="admin-logout" type="button">Esci</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="page-title-row">
+      <div>
+        <h1 class="page-title">Richieste di contatto</h1>
+        <p class="page-subtitle">Messaggi ricevuti dal form contatti del sito. Clicca una riga per leggere il messaggio completo.</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-chips" id="filter-chips">
+        <button class="chip active" data-filter="all" type="button">Tutti</button>
+        <button class="chip" data-filter="new" type="button">Nuovi</button>
+        <button class="chip" data-filter="read" type="button">Letti</button>
+        <button class="chip" data-filter="replied" type="button">Risposti</button>
+        <button class="chip" data-filter="archived" type="button">Archiviati</button>
+      </div>
+      <input type="search" class="search-input" id="search-input" placeholder="Cerca per nome, email o messaggio…">
+    </div>
+
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 130px;">Data</th>
+            <th>Mittente</th>
+            <th>Oggetto</th>
+            <th style="width: 110px;">Stato</th>
+            <th class="actions">Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="contacts-tbody">
+          <tr><td colspan="5" class="table-empty">Caricamento…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    let allContacts = [];
+    let currentFilter = 'all';
+    let currentSearch = '';
+    const expandedIds = new Set();
+
+    const STATUS_LABELS = {
+      new:      { text: 'Nuovo',      cls: 'badge--success' },
+      read:     { text: 'Letto',      cls: 'badge--warn' },
+      replied:  { text: 'Risposto',   cls: 'badge--muted' },
+      archived: { text: 'Archiviato', cls: 'badge--muted' },
+    };
+
+    const SUBJECT_LABELS = {
+      'preventivo':    'Richiesta preventivo',
+      'info-prodotto': 'Informazioni prodotto',
+      'assistenza':    'Assistenza tecnica',
+      'altro':         'Altro',
+    };
+
+    function statusBadge(status) {
+      const s = STATUS_LABELS[status] || { text: status || '—', cls: 'badge--muted' };
+      return `<span class="badge ${s.cls}">${escapeHtml(s.text)}</span>`;
+    }
+
+    function subjectLabel(subject) {
+      return SUBJECT_LABELS[subject] || subject || '—';
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+        ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function nextActions(status) {
+      const actions = [];
+      if (status === 'new')     actions.push({ to: 'read',     label: 'Segna letto',    cls: 'btn--ghost' });
+      if (status === 'new' || status === 'read') {
+        actions.push({ to: 'replied',  label: 'Segna risposto', cls: 'btn--primary' });
+      }
+      if (status !== 'archived') {
+        actions.push({ to: 'archived', label: 'Archivia',       cls: 'btn--ghost' });
+      } else {
+        actions.push({ to: 'new',      label: 'Ripristina',     cls: 'btn--ghost' });
+      }
+      return actions;
+    }
+
+    function renderExpandRow(c) {
+      const mailto = c.email
+        ? `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent('Re: ' + subjectLabel(c.subject))}`
+        : null;
+      const telLink = c.phone
+        ? `tel:${String(c.phone).replace(/[^0-9+]/g, '')}`
+        : null;
+
+      return `
+        <tr class="contact-expand-row" data-expand-for="${escapeHtml(c.id)}">
+          <td colspan="5" style="background: var(--admin-surface-alt); padding: 18px 22px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <div>
+                <div class="form-section-title" style="margin: 0 0 10px;">Messaggio</div>
+                <p style="font-size: 0.92rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word;">${escapeHtml(c.message || '—')}</p>
+              </div>
+              <div>
+                <div class="form-section-title" style="margin: 0 0 10px;">Contatto</div>
+                <p style="font-size: 0.88rem; line-height: 1.8;">
+                  <strong>${escapeHtml(c.name || '—')}</strong><br>
+                  ${c.email ? `<a href="${escapeHtml(mailto)}">${escapeHtml(c.email)}</a><br>` : ''}
+                  ${c.phone ? `<a href="${escapeHtml(telLink)}">${escapeHtml(c.phone)}</a><br>` : ''}
+                  <span style="color: var(--admin-text-muted); font-size: 0.82rem;">Oggetto: ${escapeHtml(subjectLabel(c.subject))}</span>
+                </p>
+                <p style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+                  ${mailto ? `<a href="${escapeHtml(mailto)}" class="btn btn--primary btn--sm">Rispondi via email ↗</a>` : ''}
+                  ${telLink ? `<a href="${escapeHtml(telLink)}" class="btn btn--ghost btn--sm">Chiama</a>` : ''}
+                </p>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderRow(c) {
+      const expanded = expandedIds.has(c.id);
+      const status = c.status || 'new';
+      const actions = nextActions(status);
+      const actionsHtml = actions.map(a =>
+        `<button class="btn ${a.cls} btn--sm" data-action="status" data-id="${escapeHtml(c.id)}" data-to="${escapeHtml(a.to)}" type="button">${escapeHtml(a.label)}</button>`
+      ).join('');
+
+      const isUnread = status === 'new';
+      const nameStyle = isUnread ? 'font-weight: 700;' : '';
+
+      return `
+        <tr data-id="${escapeHtml(c.id)}" data-action="expand" style="cursor: pointer;">
+          <td>${escapeHtml(fmtDate(c.created_at))}</td>
+          <td>
+            <strong style="${nameStyle}">${escapeHtml(c.name || '—')}</strong>
+            <div style="font-size: 0.78rem; color: var(--admin-text-muted);">${escapeHtml(c.email || '')}</div>
+          </td>
+          <td>${escapeHtml(subjectLabel(c.subject))}</td>
+          <td>${statusBadge(status)}</td>
+          <td class="actions">${actionsHtml}</td>
+        </tr>
+        ${expanded ? renderExpandRow(c) : ''}
+      `;
+    }
+
+    function applyFiltersAndRender() {
+      const tbody = document.getElementById('contacts-tbody');
+      let list = allContacts.slice();
+
+      if (currentFilter !== 'all') {
+        list = list.filter(c => (c.status || 'new') === currentFilter);
+      }
+      if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        list = list.filter(c =>
+          (c.name || '').toLowerCase().includes(q) ||
+          (c.email || '').toLowerCase().includes(q) ||
+          (c.message || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Nessuna richiesta.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(renderRow).join('');
+    }
+
+    async function loadContacts() {
+      const tbody = document.getElementById('contacts-tbody');
+      tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Caricamento…</td></tr>`;
+
+      const { data, error } = await supabaseAdmin
+        .from('contact_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty">Errore: ${escapeHtml(error.message)}</td></tr>`;
+        return;
+      }
+      allContacts = data || [];
+      applyFiltersAndRender();
+    }
+
+    async function updateStatus(id, newStatus) {
+      const c = allContacts.find(x => x.id === id);
+      if (!c) return;
+
+      const { error } = await supabaseAdmin.from('contact_requests').update({ status: newStatus }).eq('id', id);
+      if (error) { showToast('Errore: ' + error.message, 'error'); return; }
+      c.status = newStatus;
+      showToast('Stato aggiornato', 'success');
+      applyFiltersAndRender();
+    }
+
+    function toggleExpand(id) {
+      const c = allContacts.find(x => x.id === id);
+      const wasExpanded = expandedIds.has(id);
+      if (wasExpanded) expandedIds.delete(id);
+      else expandedIds.add(id);
+      applyFiltersAndRender();
+
+      // Quando apriamo un messaggio "new" lo marchiamo automaticamente "read"
+      if (!wasExpanded && c && (c.status || 'new') === 'new') {
+        updateStatus(id, 'read');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const session = await requireAuth();
+      if (!session) return;
+      mountAdminHeader(session);
+
+      document.getElementById('filter-chips').addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentFilter = chip.dataset.filter;
+        applyFiltersAndRender();
+      });
+
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        currentSearch = e.target.value.trim();
+        applyFiltersAndRender();
+      });
+
+      document.getElementById('contacts-tbody').addEventListener('click', (e) => {
+        const statusBtn = e.target.closest('button[data-action="status"]');
+        if (statusBtn) {
+          e.stopPropagation();
+          updateStatus(statusBtn.dataset.id, statusBtn.dataset.to);
+          return;
+        }
+        // Evita che click su link nelle righe espanse attivi il toggle
+        if (e.target.closest('a')) return;
+        const expandRow = e.target.closest('tr[data-action="expand"]');
+        if (expandRow) toggleExpand(expandRow.dataset.id);
+      });
+
+      await loadContacts();
+    });
+  </script>
+</body>
+</html>
