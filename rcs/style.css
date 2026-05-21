@@ -671,6 +671,12 @@ button {
   background: var(--bg-base);
 }
 
+/* Variante per alternare sezioni catalogo */
+.section--alt {
+  background: var(--bg-white);
+  border-top: 1px solid var(--border-color);
+}
+
 .section-header {
   text-align: center;
   margin-bottom: 56px;

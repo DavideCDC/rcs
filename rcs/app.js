@@ -137,10 +137,12 @@ function renderProductCard(product, type = 'serbatoio') {
 
 // ── Load Products from Supabase ──
 async function loadAndRenderProducts() {
-  const serbatoiGrid = document.getElementById('products-grid');
+  const serbatoiFtGrid = document.getElementById('products-grid');
+  const serbatoiIntGrid = document.getElementById('products-grid-interrati');
   const accessoriGrid = document.getElementById('accessories-grid');
 
-  if (serbatoiGrid) serbatoiGrid.innerHTML = '';
+  if (serbatoiFtGrid) serbatoiFtGrid.innerHTML = '';
+  if (serbatoiIntGrid) serbatoiIntGrid.innerHTML = '';
   if (accessoriGrid) accessoriGrid.innerHTML = '';
 
   try {
@@ -155,11 +157,11 @@ async function loadAndRenderProducts() {
 
     if (error) throw error;
 
-    let hasSerbatoi = false;
+    let hasSerbatoiFt = false;
+    let hasSerbatoiInt = false;
     let hasAccessori = false;
 
-    data.forEach((product, i) => {
-      // Determina il tipo in base alla categoria
+    data.forEach((product) => {
       const isSerbatoio = product.categories?.slug === 'serbatoi';
       const isAccessorio = product.categories?.slug === 'accessori';
 
@@ -167,23 +169,28 @@ async function loadAndRenderProducts() {
 
       const card = renderProductCard(product, isSerbatoio ? 'serbatoio' : 'accessorio');
 
-      // Stagger delay: position within its own grid (1-based, max 8)
-      let gridPos = isSerbatoio
-        ? (serbatoiGrid ? serbatoiGrid.childElementCount + 1 : 1)
-        : (accessoriGrid ? accessoriGrid.childElementCount + 1 : 1);
-      card.setAttribute('data-delay', Math.min(gridPos, 8));
-
-      if (isSerbatoio && serbatoiGrid) {
-        serbatoiGrid.appendChild(card);
-        hasSerbatoi = true;
+      if (isSerbatoio) {
+        // Smista in base allo slug: -int -> interrati, -ft (o altro) -> fuori terra
+        const isInterrato = /(^|-)int(-|$)/.test(product.slug || '');
+        const targetGrid = isInterrato ? serbatoiIntGrid : serbatoiFtGrid;
+        if (targetGrid) {
+          card.setAttribute('data-delay', Math.min(targetGrid.childElementCount + 1, 8));
+          targetGrid.appendChild(card);
+          if (isInterrato) hasSerbatoiInt = true;
+          else hasSerbatoiFt = true;
+        }
       } else if (isAccessorio && accessoriGrid) {
+        card.setAttribute('data-delay', Math.min(accessoriGrid.childElementCount + 1, 8));
         accessoriGrid.appendChild(card);
         hasAccessori = true;
       }
     });
 
-    if (!hasSerbatoi && serbatoiGrid) {
-      serbatoiGrid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun serbatoio disponibile al momento.</p>';
+    if (!hasSerbatoiFt && serbatoiFtGrid) {
+      serbatoiFtGrid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun serbatoio fuori terra disponibile al momento.</p>';
+    }
+    if (!hasSerbatoiInt && serbatoiIntGrid) {
+      serbatoiIntGrid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun serbatoio interrato disponibile al momento.</p>';
     }
     if (!hasAccessori && accessoriGrid) {
       accessoriGrid.innerHTML = '<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px;">Nessun accessorio disponibile al momento.</p>';
@@ -193,7 +200,7 @@ async function loadAndRenderProducts() {
     attachCartListeners();
   } catch (err) {
     console.error('Error loading catalogs:', err);
-    if (serbatoiGrid) serbatoiGrid.innerHTML = '<p style="text-align:center; color: var(--danger); grid-column: 1/-1; padding: 40px;">Errore nel caricamento del catalogo.</p>';
+    if (serbatoiFtGrid) serbatoiFtGrid.innerHTML = '<p style="text-align:center; color: var(--danger); grid-column: 1/-1; padding: 40px;">Errore nel caricamento del catalogo.</p>';
   }
 }
 
