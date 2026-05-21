@@ -3358,6 +3358,42 @@ button {
    BREVETTI PAGE — Hero + Bento + Brochure CTA
    ============================================ */
 
+/* Header su pagine con hero scuro (brevetti) */
+.page-dark-hero {
+  background: #0F172A; /* evita il flash bianco prima che l'hero monti */
+}
+
+.page-dark-hero .site-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Quando l'utente scrolla oltre l'hero scuro, l'header diventa bianco
+   e i link tornano scuri per restare leggibili sul resto della pagina. */
+.page-dark-hero .site-header.scrolled {
+  position: fixed;
+  background: rgba(255,255,255,0.97);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.page-dark-hero .site-header.scrolled .main-nav a,
+.page-dark-hero .site-header.scrolled .header-action-btn {
+  color: var(--text-secondary);
+}
+
+.page-dark-hero .site-header.scrolled .main-nav a:hover,
+.page-dark-hero .site-header.scrolled .header-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-subtle);
+}
+
+/* Compensiamo l'header absolute con padding sull'hero (gia' presente) */
+
+
 /* ---------- Patents Hero ---------- */
 .patents-hero {
   position: relative;
