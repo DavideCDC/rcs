@@ -1818,46 +1818,136 @@ button {
   }
 }
 
-/* ==================== MODERN TIMELINE FOR BREVETTI ==================== */
-.timeline-modern {
+/* ==================== TIMELINE BLUEPRINT TECNICO (BREVETTI) ==================== */
+
+/* Background grid sulla sezione storia (tipo CAD) */
+.history-section {
   position: relative;
-  max-width: 900px;
-  margin: 60px auto 0;
-  padding: 20px 0;
+  overflow: hidden;
 }
 
-.timeline-modern::after {
+.history-section::before {
   content: '';
   position: absolute;
-  width: 4px;
-  background: linear-gradient(to bottom, var(--accent-blue-light) 0%, var(--accent-blue) 100%);
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(71,110,169,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71,110,169,0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: -1px -1px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+}
+
+.history-section > .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Cross marks decorativi agli angoli */
+.history-section::after {
+  content: '';
+  position: absolute;
+  top: 80px;
+  left: 24px;
+  right: 24px;
+  bottom: 80px;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    /* Top-left cross */
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25)),
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25)),
+    /* Top-right cross */
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25)),
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25)),
+    /* Bottom-left cross */
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25)),
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25)),
+    /* Bottom-right cross */
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25)),
+    linear-gradient(rgba(71,110,169,0.25), rgba(71,110,169,0.25));
+  background-size: 16px 1px, 1px 16px, 16px 1px, 1px 16px, 16px 1px, 1px 16px, 16px 1px, 1px 16px;
+  background-position:
+    top left, top left,
+    top right, top right,
+    bottom left, bottom left,
+    bottom right, bottom right;
+  background-repeat: no-repeat;
+}
+
+/* Timeline wrapper */
+.timeline-modern {
+  position: relative;
+  max-width: 960px;
+  margin: 60px auto 0;
+  padding: 20px 0;
+  --timeline-progress: 0;
+}
+
+/* Linea base (tutta opaca) */
+.timeline-modern::before {
+  content: '';
+  position: absolute;
+  width: 2px;
+  background: rgba(71,110,169,0.15);
   top: 0;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  border-radius: 2px;
+  z-index: 0;
 }
 
+/* Linea animata (si "disegna" mentre scrolli) */
+.timeline-progress-bar {
+  position: absolute;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--accent-blue) 0%, var(--accent-blue-hover) 60%, transparent 100%);
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleY(var(--timeline-progress, 0));
+  transform-origin: top center;
+  border-radius: 2px;
+  z-index: 1;
+  box-shadow: 0 0 18px rgba(71,110,169,0.45);
+  transition: transform 200ms linear;
+}
+
+/* Item */
 .timeline-item {
   position: relative;
   width: 50%;
-  padding: 10px 40px;
-  margin-bottom: 30px;
+  padding: 16px 56px;
+  margin-bottom: 56px;
   opacity: 0;
   transform: translateY(40px);
-  animation: slideUpTimeline 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes slideUpTimeline {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.timeline-item.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.timeline-item:nth-child(even) {
-  left: 50%;
-  text-align: left;
+/* Anno gigante in watermark (background) */
+.timeline-item::before {
+  content: attr(data-year);
+  position: absolute;
+  font-size: clamp(5rem, 9vw, 8.5rem);
+  font-weight: 900;
+  line-height: 0.85;
+  color: rgba(15,23,42,0.05);
+  top: 50%;
+  transform: translateY(-50%);
+  letter-spacing: -0.04em;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  z-index: 0;
+  white-space: nowrap;
 }
 
 .timeline-item:nth-child(odd) {
@@ -1865,121 +1955,315 @@ button {
   text-align: right;
 }
 
-/* Dots */
-.timeline-item::after {
+.timeline-item:nth-child(even) {
+  left: 50%;
+  text-align: left;
+}
+
+.timeline-item:nth-child(odd)::before {
+  right: 56px;
+}
+
+.timeline-item:nth-child(even)::before {
+  left: 56px;
+}
+
+/* Dot centrale: cerchio con icona + connector line verso la card */
+.timeline-dot {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  background: var(--bg-white);
+  border: 2px solid var(--accent-blue);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue);
+  top: 32px;
+  z-index: 3;
+  box-shadow: 0 0 0 6px var(--bg-base), 0 8px 20px rgba(71,110,169,0.18);
+  transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 350ms ease, background 350ms ease;
+}
+
+.timeline-dot svg {
+  width: 26px;
+  height: 26px;
+  transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timeline-item:nth-child(odd) .timeline-dot {
+  right: -28px;
+}
+
+.timeline-item:nth-child(even) .timeline-dot {
+  left: -28px;
+}
+
+/* Connector tra dot e card (segmento orizzontale tratteggiato) */
+.timeline-dot::after {
   content: '';
   position: absolute;
-  width: 24px;
-  height: 24px;
-  background-color: var(--bg-white);
-  border: 4px solid var(--accent-blue);
-  top: 15px; /* Align to text vertically */
-  border-radius: 50%;
-  z-index: 1;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  top: 50%;
+  width: 32px;
+  height: 1px;
+  border-top: 1px dashed rgba(71,110,169,0.35);
+  transform: translateY(-50%);
 }
 
-.timeline-item:nth-child(odd)::after {
-  right: -12px;
-}
-.timeline-item:nth-child(even)::after {
-  left: -12px;
+.timeline-item:nth-child(odd) .timeline-dot::after {
+  right: 100%;
+  margin-right: 6px;
 }
 
-.timeline-item:hover::after {
-  background-color: var(--accent-blue);
-  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.2), 0 0 15px var(--accent-blue-light);
-  transform: scale(1.1);
+.timeline-item:nth-child(even) .timeline-dot::after {
+  left: 100%;
+  margin-left: 6px;
 }
 
-/* Content Box */
+/* Hover dot: pulse + scale */
+.timeline-item:hover .timeline-dot {
+  background: var(--accent-blue);
+  color: #fff;
+  transform: scale(1.12);
+  box-shadow: 0 0 0 6px var(--bg-base), 0 0 0 12px rgba(71,110,169,0.15), 0 12px 28px rgba(71,110,169,0.35);
+}
+
+.timeline-item:hover .timeline-dot svg {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+/* Dot "Oggi" — accentuato */
+.timeline-dot--today {
+  background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-blue-hover) 100%);
+  color: #fff;
+  border-color: transparent;
+  animation: timelinePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes timelinePulse {
+  0%, 100% { box-shadow: 0 0 0 6px var(--bg-base), 0 0 0 10px rgba(71,110,169,0.25), 0 8px 20px rgba(71,110,169,0.35); }
+  50% { box-shadow: 0 0 0 6px var(--bg-base), 0 0 0 18px rgba(71,110,169,0), 0 8px 20px rgba(71,110,169,0.35); }
+}
+
+/* Card */
 .timeline-content {
-  padding: 30px;
-  background: var(--bg-white);
-  border-radius: 12px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
   position: relative;
+  padding: 28px 32px;
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 350ms ease, border-color 350ms ease;
   z-index: 2;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Numero anno piccolo nell'angolo della card (techie blueprint label) */
+.timeline-content::before {
+  content: attr(data-tag);
+  position: absolute;
+  top: 14px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--text-light);
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+}
+
+.timeline-item:nth-child(odd) .timeline-content::before {
+  content: '— INNOV.';
+  right: 18px;
+}
+
+.timeline-item:nth-child(even) .timeline-content::before {
+  content: 'INNOV. —';
+  left: 18px;
 }
 
 .timeline-item:hover .timeline-content {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
   box-shadow: var(--shadow-xl);
   border-color: var(--accent-blue-light);
 }
 
 .timeline-year {
-  display: inline-block;
-  padding: 6px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.timeline-year::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background: var(--accent-blue);
-  color: white;
-  border-radius: 20px;
-  font-weight: 800;
-  font-size: 0.95rem;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
 }
 
 .timeline-content h3 {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   line-height: 1.3;
 }
 
 .timeline-content ul {
-  padding-left: 20px;
+  padding-left: 0;
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.timeline-content ul li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.timeline-content ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 8px;
+  height: 1px;
+  background: var(--accent-blue);
 }
 
 .timeline-item:nth-child(odd) .timeline-content ul {
+  text-align: right;
+}
+
+.timeline-item:nth-child(odd) .timeline-content ul li {
   padding-left: 0;
-  padding-right: 20px;
-  list-style-position: inside; /* Prevent bullets from breaking alignment on right-align */
+  padding-right: 18px;
+}
+
+.timeline-item:nth-child(odd) .timeline-content ul li::before {
+  left: auto;
+  right: 0;
 }
 
 .timeline-content p {
   color: var(--text-secondary);
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.65;
   margin: 0;
 }
 
-/* Mobile responsive timeline */
+/* Today item — dark variant */
+.timeline-item--today .timeline-content {
+  background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
+.timeline-item--today .timeline-content::before {
+  color: rgba(255,255,255,0.4);
+}
+
+.timeline-item--today .timeline-content .timeline-year {
+  background: rgba(71,110,169,0.25);
+  color: #93B5DD;
+}
+
+.timeline-item--today .timeline-content .timeline-year::before {
+  background: #93B5DD;
+}
+
+.timeline-item--today .timeline-content h3 {
+  color: #fff;
+}
+
+.timeline-item--today .timeline-content p {
+  color: #CBD5E1;
+}
+
+.timeline-item--today::before {
+  color: rgba(71,110,169,0.08);
+}
+
+/* Mobile */
 @media screen and (max-width: 768px) {
-  .timeline-modern::after {
-    left: 24px;
-    transform: none;
+  .timeline-modern::before,
+  .timeline-progress-bar {
+    left: 28px;
+    transform: translateX(-50%) scaleY(var(--timeline-progress, 0));
   }
-  
+
+  .timeline-modern::before {
+    transform: translateX(-50%);
+  }
+
   .timeline-item {
     width: 100%;
-    padding-left: 60px;
-    padding-right: 20px;
+    padding: 16px 16px 16px 76px;
     text-align: left !important;
+    margin-bottom: 36px;
   }
-  
+
   .timeline-item:nth-child(odd),
   .timeline-item:nth-child(even) {
     left: 0;
   }
-  
-  .timeline-item::after {
-    left: 12px !important;
-    right: auto !important;
+
+  .timeline-item:nth-child(odd) .timeline-dot,
+  .timeline-item:nth-child(even) .timeline-dot {
+    left: 0;
+    right: auto;
+    width: 48px;
+    height: 48px;
+    top: 20px;
   }
-  
+
+  .timeline-item:nth-child(odd) .timeline-dot::after,
+  .timeline-item:nth-child(even) .timeline-dot::after {
+    left: 100%;
+    right: auto;
+    margin-left: 4px;
+    margin-right: 0;
+    width: 16px;
+  }
+
+  .timeline-item:nth-child(odd)::before,
+  .timeline-item:nth-child(even)::before {
+    right: auto;
+    left: 76px;
+    font-size: 4rem;
+    opacity: 0.6;
+  }
+
+  .timeline-item:nth-child(odd) .timeline-content::before {
+    right: 14px;
+    left: auto;
+    content: 'INNOV. —';
+  }
+
   .timeline-item:nth-child(odd) .timeline-content ul {
-    padding-left: 20px;
+    text-align: left;
+  }
+
+  .timeline-item:nth-child(odd) .timeline-content ul li {
+    padding-left: 18px;
     padding-right: 0;
-    list-style-position: outside;
+  }
+
+  .timeline-item:nth-child(odd) .timeline-content ul li::before {
+    left: 0;
+    right: auto;
   }
 }
 
