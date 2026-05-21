@@ -84,15 +84,21 @@ function renderProductCard(product, type = 'serbatoio') {
   const safeName = escapeHtml(product.name);
   const safeDesc = escapeHtml(product.description || '');
   const safeImg = safeUrl(product.image_url);
+  const safeImg2 = safeUrl(product.image_url_2);
   const safeId = escapeHtml(product.id);
   const safeType = escapeHtml(type);
   const safePrice = escapeHtml(product.price);
   const safeSlug = escapeHtml(product.slug);
 
+  const imageHtml = safeImg2
+    ? `<img src="${safeImg}" alt="${safeName}" loading="lazy" class="product-card-img product-card-img--primary">
+       <img src="${safeImg2}" alt="" loading="lazy" class="product-card-img product-card-img--alt" aria-hidden="true">`
+    : `<img src="${safeImg}" alt="${safeName}" loading="lazy" class="product-card-img product-card-img--primary">`;
+
   card.innerHTML = `
-    <div class="product-card-image">
+    <div class="product-card-image${safeImg2 ? ' has-alt' : ''}">
       ${tags.join('')}
-      <img src="${safeImg}" alt="${safeName}" loading="lazy">
+      ${imageHtml}
     </div>
     <div class="product-card-body">
       <h3>${safeName}</h3>
