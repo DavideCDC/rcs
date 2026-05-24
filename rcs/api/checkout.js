@@ -119,6 +119,9 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('Checkout error:', err);
-        return res.status(500).json({ error: "Errore nell'avvio del pagamento" });
+        return res.status(500).json({
+            error: "Errore nell'avvio del pagamento",
+            debug: { type: err?.type, code: err?.code, message: err?.message }
+        });
     }
 }
