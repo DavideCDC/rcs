@@ -3934,3 +3934,630 @@ button {
     font-size: 1.2rem;
   }
 }
+
+/* ===================================================================
+   DIORAMA CATALOGO — scena animata con switch FT/INT
+   =================================================================== */
+
+.diorama-section {
+  background: linear-gradient(180deg, #f6f7f9 0%, #ffffff 100%);
+}
+
+.diorama {
+  --diorama-h: 560px;
+  --diorama-radius: 24px;
+  --diorama-accent: #1a3a5c;
+  position: relative;
+  margin-top: 32px;
+}
+
+/* ─── Switch FT / INT ─── */
+.diorama-switch {
+  position: relative;
+  display: inline-flex;
+  margin: 0 auto 28px;
+  padding: 6px;
+  background: rgba(20, 30, 50, 0.06);
+  border-radius: 999px;
+  gap: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  isolation: isolate;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.diorama-switch__btn {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border: 0;
+  background: transparent;
+  font: 500 0.95rem/1 'Inter', sans-serif;
+  letter-spacing: 0.02em;
+  color: #5b6878;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.4s ease;
+}
+
+.diorama-switch__btn svg {
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+}
+
+.diorama-switch__btn.is-active {
+  color: #fff;
+}
+
+.diorama-switch__btn:focus-visible {
+  outline: 2px solid var(--diorama-accent);
+  outline-offset: 3px;
+}
+
+.diorama-switch__pill {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: calc(50% - 6px);
+  background: var(--diorama-accent);
+  border-radius: 999px;
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1), background 0.6s ease;
+  box-shadow: 0 4px 14px rgba(26, 58, 92, 0.35);
+}
+
+.diorama[data-mode="int"] .diorama-switch__pill {
+  transform: translateX(100%);
+  background: #5a3a1f;
+  box-shadow: 0 4px 14px rgba(90, 58, 31, 0.4);
+}
+
+/* ─── Stage / scena ─── */
+.diorama-stage {
+  position: relative;
+  height: var(--diorama-h);
+  border-radius: var(--diorama-radius);
+  overflow: hidden;
+  box-shadow: 0 30px 80px -30px rgba(20, 30, 50, 0.35),
+              0 8px 24px -12px rgba(20, 30, 50, 0.18);
+  isolation: isolate;
+}
+
+.diorama-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: transform 1.1s cubic-bezier(0.77, 0, 0.18, 1),
+              opacity 0.7s ease;
+  will-change: transform;
+}
+
+.diorama-bg--ft {
+  background-image: url('assets/images/prato.jpeg');
+  transform: translateY(0);
+  z-index: 1;
+}
+
+.diorama-bg--int {
+  background-image: url('assets/images/prato%20int.jpeg');
+  background-position: center top;
+  transform: translateY(100%);
+  z-index: 2;
+}
+
+.diorama[data-mode="int"] .diorama-bg--ft {
+  transform: translateY(-100%);
+}
+
+.diorama[data-mode="int"] .diorama-bg--int {
+  transform: translateY(0);
+}
+
+/* Velo per migliorare contrasto sul prato */
+.diorama-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,0.18) 100%);
+}
+
+/* ─── Carousel ─── */
+.diorama-carousel {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diorama-carousel[hidden] {
+  display: none;
+}
+
+.diorama-track {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 60px;
+}
+
+/* Nav frecce */
+.diorama-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--diorama-accent);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 20px -6px rgba(0,0,0,0.25);
+  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.diorama-nav:hover {
+  background: #fff;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 10px 28px -8px rgba(0,0,0,0.32);
+}
+
+.diorama-nav:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.diorama-nav svg {
+  width: 22px;
+  height: 22px;
+}
+
+.diorama-nav--prev { left: 18px; }
+.diorama-nav--next { right: 18px; }
+
+.diorama[data-mode="int"] .diorama-nav {
+  color: #3a2410;
+}
+
+/* Slide */
+.diorama-slide {
+  position: absolute;
+  left: 50%;
+  bottom: 60px;
+  width: 320px;
+  max-width: 36%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, 0) scale(0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.7s cubic-bezier(0.65, 0, 0.35, 1),
+              opacity 0.5s ease,
+              filter 0.6s ease;
+  filter: drop-shadow(0 18px 28px rgba(0,0,0,0.28));
+  cursor: pointer;
+}
+
+.diorama-slide__img {
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+  animation: dioramaFloat 5.5s ease-in-out infinite;
+}
+
+.diorama-slide__label {
+  margin-top: 14px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--diorama-accent);
+  font: 600 0.78rem/1 'Inter', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px -4px rgba(0,0,0,0.25);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.45s ease 0.15s, transform 0.45s ease 0.15s;
+}
+
+.diorama[data-mode="int"] .diorama-slide__label {
+  color: #3a2410;
+}
+
+/* Stati slide: center / left / right / hidden */
+.diorama-slide.is-active {
+  transform: translate(-50%, 0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 3;
+  filter: drop-shadow(0 26px 36px rgba(0,0,0,0.42));
+}
+
+.diorama-slide.is-active .diorama-slide__label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.diorama-slide.is-prev {
+  transform: translate(calc(-50% - 280px), 12px) scale(0.65);
+  opacity: 0.55;
+  pointer-events: auto;
+  z-index: 2;
+  filter: drop-shadow(0 14px 22px rgba(0,0,0,0.22)) blur(0.4px);
+}
+
+.diorama-slide.is-next {
+  transform: translate(calc(-50% + 280px), 12px) scale(0.65);
+  opacity: 0.55;
+  pointer-events: auto;
+  z-index: 2;
+  filter: drop-shadow(0 14px 22px rgba(0,0,0,0.22)) blur(0.4px);
+}
+
+.diorama-slide.is-far {
+  transform: translate(-50%, 30px) scale(0.4);
+  opacity: 0;
+  z-index: 1;
+}
+
+.diorama-slide.is-prev:hover,
+.diorama-slide.is-next:hover {
+  opacity: 0.85;
+}
+
+@keyframes dioramaFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* Skeleton iniziale */
+.diorama-skeleton {
+  width: 280px;
+  height: 320px;
+  margin: auto;
+  border-radius: 16px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.18) 100%);
+  background-size: 200% 100%;
+  animation: dioramaShimmer 1.4s linear infinite;
+}
+
+@keyframes dioramaShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Indicatori a pallino ─── */
+.diorama-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 22px;
+}
+
+.diorama-dots[hidden] {
+  display: none;
+}
+
+.diorama-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0;
+  background: rgba(20, 30, 50, 0.2);
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease, width 0.3s ease;
+}
+
+.diorama-dot.is-active {
+  background: var(--diorama-accent);
+  width: 22px;
+}
+
+.diorama[data-mode="int"] .diorama-dot.is-active {
+  background: #5a3a1f;
+}
+
+.diorama-dot:focus-visible {
+  outline: 2px solid var(--diorama-accent);
+  outline-offset: 3px;
+}
+
+/* ─── Card dettaglio sotto la scena ─── */
+.diorama-detail {
+  max-width: 760px;
+  margin: 12px auto 0;
+  padding: 28px 32px;
+  background: #fff;
+  border: 1px solid rgba(20, 30, 50, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 14px 40px -18px rgba(20, 30, 50, 0.25);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+  min-height: 110px;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.diorama-detail.is-fading {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.diorama-detail__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.diorama-detail__name {
+  font: 700 1.35rem/1.2 'Inter', sans-serif;
+  color: var(--diorama-accent);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.diorama-detail__meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font: 500 0.85rem/1 'Inter', sans-serif;
+  color: #6b7888;
+}
+
+.diorama-detail__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diorama-detail__meta span + span::before {
+  content: "·";
+  margin-right: 10px;
+  color: rgba(20, 30, 50, 0.25);
+}
+
+.diorama-detail__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.diorama-detail__tag {
+  display: inline-block;
+  padding: 4px 10px;
+  font: 600 0.7rem/1 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 999px;
+  background: rgba(26, 58, 92, 0.08);
+  color: var(--diorama-accent);
+}
+
+.diorama-detail__tag--vvf {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+
+.diorama-detail__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.diorama-detail__price {
+  font: 700 1.6rem/1 'Inter', sans-serif;
+  color: var(--diorama-accent);
+  letter-spacing: -0.02em;
+}
+
+.diorama-detail__price small {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #94a0b0;
+  margin-left: 4px;
+  letter-spacing: 0.02em;
+}
+
+.diorama-detail__price--quote {
+  font-size: 1.05rem;
+  color: #6b7888;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.diorama-detail__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: 0;
+  background: var(--diorama-accent);
+  color: #fff;
+  font: 600 0.9rem/1 'Inter', sans-serif;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 8px 20px -8px rgba(26, 58, 92, 0.5);
+}
+
+.diorama-detail__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px -10px rgba(26, 58, 92, 0.6);
+  background: #234870;
+}
+
+.diorama-detail__cta:focus-visible {
+  outline: 2px solid var(--diorama-accent);
+  outline-offset: 3px;
+}
+
+.diorama-detail__cta svg {
+  width: 16px;
+  height: 16px;
+}
+
+.diorama-detail__contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--diorama-accent);
+  font: 500 0.85rem/1 'Inter', sans-serif;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.diorama-detail__contact:hover {
+  opacity: 0.7;
+}
+
+/* ─── Tablet ─── */
+@media (max-width: 1024px) {
+  .diorama {
+    --diorama-h: 460px;
+  }
+
+  .diorama-slide {
+    width: 260px;
+    max-width: 50%;
+  }
+
+  .diorama-slide__img {
+    max-height: 280px;
+  }
+
+  .diorama-slide.is-prev {
+    transform: translate(calc(-50% - 200px), 10px) scale(0.55);
+  }
+
+  .diorama-slide.is-next {
+    transform: translate(calc(-50% + 200px), 10px) scale(0.55);
+  }
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 720px) {
+  .diorama {
+    --diorama-h: 400px;
+    --diorama-radius: 18px;
+  }
+
+  .diorama-switch__btn {
+    padding: 10px 18px;
+    font-size: 0.85rem;
+  }
+
+  .diorama-switch__btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .diorama-slide {
+    width: 220px;
+    max-width: 70%;
+    bottom: 40px;
+  }
+
+  .diorama-slide__img {
+    max-height: 220px;
+  }
+
+  .diorama-slide.is-prev,
+  .diorama-slide.is-next {
+    transform: translate(-50%, 30px) scale(0.35);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .diorama-nav {
+    width: 44px;
+    height: 44px;
+  }
+
+  .diorama-nav--prev { left: 10px; }
+  .diorama-nav--next { right: 10px; }
+
+  .diorama-detail {
+    grid-template-columns: 1fr;
+    padding: 22px 20px;
+    text-align: left;
+  }
+
+  .diorama-detail__actions {
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .diorama-detail__price {
+    font-size: 1.4rem;
+  }
+
+  .diorama-detail__cta {
+    justify-content: center;
+  }
+}
+
+/* ─── Accessibilità: prefers-reduced-motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .diorama-bg,
+  .diorama-slide,
+  .diorama-switch__pill,
+  .diorama-detail {
+    transition: opacity 0.2s linear !important;
+    animation: none !important;
+  }
+
+  .diorama-slide__img {
+    animation: none !important;
+  }
+
+  .diorama-bg--int {
+    transform: none;
+    opacity: 0;
+  }
+
+  .diorama[data-mode="int"] .diorama-bg--ft {
+    opacity: 0;
+    transform: none;
+  }
+
+  .diorama[data-mode="int"] .diorama-bg--int {
+    opacity: 1;
+    transform: none;
+  }
+
+  .diorama-slide.is-prev,
+  .diorama-slide.is-next {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.4);
+    pointer-events: none;
+  }
+}

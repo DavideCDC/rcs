@@ -164,38 +164,69 @@
   </section>
 
 
-  <!-- ==================== CATALOGO SERBATOI FUORI TERRA ==================== -->
-  <section class="section" id="catalogo">
+  <!-- ==================== CATALOGO DIORAMA (FT + INT con switch) ==================== -->
+  <section class="section diorama-section" id="catalogo">
     <div class="container">
       <div class="section-header reveal">
-        <div class="section-label">Catalogo · Fuori terra</div>
-        <h2 class="section-title">Serbatoi GPL — installazione fuori terra</h2>
-        <p class="section-subtitle">Linea Lino dal 295 al 3000 litri. Installazione esterna, design compatto brevettato.</p>
+        <div class="section-label">Catalogo · Linea Lino</div>
+        <h2 class="section-title">Serbatoi GPL — fuori terra e interrati</h2>
+        <p class="section-subtitle">Dal 295 al 3000 litri. Design compatto brevettato, installazione esterna o interrata.</p>
       </div>
-      <div class="products-grid" id="products-grid">
-        <!-- Populated dynamically from Supabase -->
-        <div class="skeleton skeleton-card"></div>
-        <div class="skeleton skeleton-card"></div>
-        <div class="skeleton skeleton-card"></div>
-        <div class="skeleton skeleton-card"></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- ==================== CATALOGO SERBATOI INTERRATI ==================== -->
-  <section class="section section--alt" id="catalogo-interrati">
-    <div class="container">
-      <div class="section-header reveal">
-        <div class="section-label">Catalogo · Interrati</div>
-        <h2 class="section-title">Serbatoi GPL — installazione interrata</h2>
-        <p class="section-subtitle">Soluzioni interrate per massima estetica e ingombro nullo a vista. Per residenziale di pregio e uso commerciale.</p>
-      </div>
-      <div class="products-grid" id="products-grid-interrati">
-        <!-- Populated dynamically from Supabase -->
-        <div class="skeleton skeleton-card"></div>
-        <div class="skeleton skeleton-card"></div>
-        <div class="skeleton skeleton-card"></div>
-        <div class="skeleton skeleton-card"></div>
+      <div class="diorama" id="diorama" data-mode="ft" aria-live="polite">
+        <!-- Switch FT / INT -->
+        <div class="diorama-switch reveal" role="tablist" aria-label="Tipo di installazione">
+          <button type="button" class="diorama-switch__btn is-active" data-mode="ft" role="tab" aria-selected="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            <span>Fuori Terra</span>
+          </button>
+          <button type="button" class="diorama-switch__btn" data-mode="int" role="tab" aria-selected="false">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M2 14h20M2 18h20"/></svg>
+            <span>Interrati</span>
+          </button>
+          <span class="diorama-switch__pill" aria-hidden="true"></span>
+        </div>
+
+        <!-- Scena con sfondo -->
+        <div class="diorama-stage reveal">
+          <div class="diorama-bg diorama-bg--ft" aria-hidden="true"></div>
+          <div class="diorama-bg diorama-bg--int" aria-hidden="true"></div>
+
+          <!-- Carousel FT -->
+          <div class="diorama-carousel" data-mode="ft" aria-roledescription="carousel">
+            <button type="button" class="diorama-nav diorama-nav--prev" data-dir="-1" aria-label="Precedente">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="diorama-track" data-track="ft">
+              <!-- Slides popolati da JS -->
+              <div class="diorama-skeleton"></div>
+            </div>
+            <button type="button" class="diorama-nav diorama-nav--next" data-dir="1" aria-label="Successivo">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <!-- Carousel INT -->
+          <div class="diorama-carousel" data-mode="int" aria-roledescription="carousel" hidden>
+            <button type="button" class="diorama-nav diorama-nav--prev" data-dir="-1" aria-label="Precedente">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="diorama-track" data-track="int">
+              <div class="diorama-skeleton"></div>
+            </div>
+            <button type="button" class="diorama-nav diorama-nav--next" data-dir="1" aria-label="Successivo">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Indicatori + Card dettaglio -->
+        <div class="diorama-dots" data-dots="ft" aria-hidden="true"></div>
+        <div class="diorama-dots" data-dots="int" hidden aria-hidden="true"></div>
+
+        <div class="diorama-detail reveal" id="diorama-detail" aria-live="polite">
+          <!-- Popolato da JS -->
+        </div>
       </div>
     </div>
   </section>

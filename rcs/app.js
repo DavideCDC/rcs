@@ -757,4 +757,274 @@ document.addEventListener('DOMContentLoaded', async () => {
   initContactForm();
 
   await loadAndRenderProducts();
+  initDiorama();
 });
+
+// ===================================================================
+// DIORAMA — catalogo serbatoi con scena animata + switch FT/INT
+// ===================================================================
+
+const DIORAMA_PNG = {
+  '295-ft':   'assets/images/serbatoi/295 ft png.png',
+  '1000v-ft': 'assets/images/serbatoi/1000v ft png.png',
+  '1000h-ft': 'assets/images/serbatoi/100h ft png.png',
+  '1750h-ft': 'assets/images/serbatoi/1750h ft png.png',
+  '3000h-ft': 'assets/images/serbatoi/3000h ft png.png',
+  '1000v-int': 'assets/images/serbatoi/1000v int png.png',
+  '1000s-int': 'assets/images/serbatoi/1000s int png.png',
+  '1650v-int': 'assets/images/serbatoi/1650v int png.png',
+  '1750h-int': 'assets/images/serbatoi/1750 h int png.png',
+};
+
+function dioramaPngFor(product) {
+  const name = (product.name || '').toLowerCase();
+  const isInt = /interrat/i.test(name);
+  const cap = name.match(/\b(295|1000|1650|1750|3000)\b/);
+  const variant = name.match(/\b([vhs])\b/i);
+  if (!cap) return null;
+  const key = `${cap[1]}${variant ? variant[1].toLowerCase() : ''}-${isInt ? 'int' : 'ft'}`;
+  return DIORAMA_PNG[key] || null;
+}
+
+function dioramaShortLabel(name) {
+  const m = String(name || '').match(/Lino\s+(\d+)\s*([VHS])?/i);
+  if (!m) return name;
+  return m[2] ? `Lino ${m[1]} ${m[2].toUpperCase()}` : `Lino ${m[1]}`;
+}
+
+function buildDioramaSlide(product, png) {
+  const safeName = escapeHtml(product.name);
+  const safeImg = safeUrl(png || product.image_url || '');
+  const shortLbl = escapeHtml(dioramaShortLabel(product.name));
+
+  const slide = document.createElement('button');
+  slide.type = 'button';
+  slide.className = 'diorama-slide';
+  slide.dataset.productId = product.id;
+  slide.setAttribute('aria-label', `${product.name} — vedi dettagli`);
+  slide.innerHTML = `
+    <img src="${safeImg}" alt="${safeName}" loading="lazy" class="diorama-slide__img">
+    <span class="diorama-slide__label">${shortLbl}</span>
+  `;
+  return slide;
+}
+
+function renderDioramaDetail(detailEl, product, mode) {
+  if (!detailEl || !product) return;
+  const safeName = escapeHtml(product.name);
+  const safeId = escapeHtml(product.id);
+  const safeImg = safeUrl(product.image_url || '');
+  const isInt = mode === 'int';
+  const isQuote = product.is_quote_only || product.price == null;
+
+  // Meta: capacità + posizionamento + brevettato
+  const meta = [];
+  const cap = String(product.name || '').match(/(\d{2,4})/);
+  if (cap) meta.push(`<span>${cap[1]} L</span>`);
+  meta.push(`<span>${isInt ? 'Installazione interrata' : 'Installazione fuori terra'}</span>`);
+
+  const tags = [];
+  if (product.is_patented) tags.push('<span class="diorama-detail__tag">Brevettato</span>');
+  if (product.requires_vvf) tags.push('<span class="diorama-detail__tag diorama-detail__tag--vvf">Richiede autorizzazione VVF</span>');
+
+  const priceBlock = isQuote
+    ? `<div class="diorama-detail__price diorama-detail__price--quote">Disponibile su richiesta</div>
+       <a href="#contatti" class="diorama-detail__contact">
+         Contattaci per maggiori informazioni
+         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+       </a>`
+    : `<div class="diorama-detail__price">
+         ${Number(product.price).toLocaleString('it-IT', { minimumFractionDigits: 2 })} €
+         <small>+ IVA</small>
+       </div>
+       <button type="button" class="diorama-detail__cta btn-add-cart"
+               data-id="${safeId}" data-type="serbatoio"
+               data-name="${safeName}" data-price="${escapeHtml(product.price)}"
+               data-image="${safeImg}">
+         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+         Aggiungi al carrello
+       </button>`;
+
+  detailEl.classList.add('is-fading');
+  setTimeout(() => {
+    detailEl.innerHTML = `
+      <div class="diorama-detail__info">
+        <h3 class="diorama-detail__name">${safeName}</h3>
+        <div class="diorama-detail__meta">${meta.join('')}</div>
+        ${tags.length ? `<div class="diorama-detail__tags">${tags.join('')}</div>` : ''}
+      </div>
+      <div class="diorama-detail__actions">
+        ${priceBlock}
+      </div>
+    `;
+    detailEl.classList.remove('is-fading');
+  }, 180);
+}
+
+function applySlideClasses(track, activeIdx) {
+  const slides = Array.from(track.querySelectorAll('.diorama-slide'));
+  const n = slides.length;
+  if (n === 0) return;
+  slides.forEach((s, i) => {
+    s.classList.remove('is-active', 'is-prev', 'is-next', 'is-far');
+    const rel = (i - activeIdx + n) % n;
+    if (rel === 0) s.classList.add('is-active');
+    else if (rel === 1) s.classList.add('is-next');
+    else if (rel === n - 1) s.classList.add('is-prev');
+    else s.classList.add('is-far');
+  });
+}
+
+function renderDots(dotsEl, count, activeIdx, onClick) {
+  if (!dotsEl) return;
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'diorama-dot' + (i === activeIdx ? ' is-active' : '');
+    dot.setAttribute('aria-label', `Vai al modello ${i + 1}`);
+    dot.addEventListener('click', () => onClick(i));
+    dotsEl.appendChild(dot);
+  }
+}
+
+function initDiorama() {
+  const diorama = document.getElementById('diorama');
+  if (!diorama) return;
+
+  const detailEl = document.getElementById('diorama-detail');
+  const switchBtns = diorama.querySelectorAll('.diorama-switch__btn');
+  const trackFt = diorama.querySelector('[data-track="ft"]');
+  const trackInt = diorama.querySelector('[data-track="int"]');
+  const dotsFt = diorama.querySelector('[data-dots="ft"]');
+  const dotsInt = diorama.querySelector('[data-dots="int"]');
+  const carouselFt = diorama.querySelector('.diorama-carousel[data-mode="ft"]');
+  const carouselInt = diorama.querySelector('.diorama-carousel[data-mode="int"]');
+
+  // Estrai serbatoi da productsById, separa FT / INT
+  const serbatoi = Array.from(productsById.values())
+    .filter(p => (p.categories?.slug === 'serbatoi') || /^lino/i.test(p.name || ''));
+
+  const orderByCapacity = (a, b) => {
+    const ca = parseInt(String(a.name).match(/\d+/)?.[0] || '0', 10);
+    const cb = parseInt(String(b.name).match(/\d+/)?.[0] || '0', 10);
+    return ca - cb;
+  };
+
+  const serbatoiFt = serbatoi
+    .filter(p => !/interrat/i.test(p.name || '') && !/(^|-)int(-|$)/.test(p.slug || ''))
+    .sort(orderByCapacity);
+  const serbatoiInt = serbatoi
+    .filter(p => /interrat/i.test(p.name || '') || /(^|-)int(-|$)/.test(p.slug || ''))
+    .sort(orderByCapacity);
+
+  // Popola tracks
+  trackFt.innerHTML = '';
+  trackInt.innerHTML = '';
+  serbatoiFt.forEach(p => trackFt.appendChild(buildDioramaSlide(p, dioramaPngFor(p))));
+  serbatoiInt.forEach(p => trackInt.appendChild(buildDioramaSlide(p, dioramaPngFor(p))));
+
+  // State
+  const state = {
+    mode: 'ft',
+    idxFt: 0,
+    idxInt: 0,
+  };
+
+  const getCurrent = () => ({
+    track: state.mode === 'ft' ? trackFt : trackInt,
+    dots: state.mode === 'ft' ? dotsFt : dotsInt,
+    list: state.mode === 'ft' ? serbatoiFt : serbatoiInt,
+    idx: state.mode === 'ft' ? state.idxFt : state.idxInt,
+  });
+
+  const sync = () => {
+    const { track, dots, list, idx } = getCurrent();
+    if (list.length === 0) {
+      track.innerHTML = '<p style="color:#fff; text-align:center; width:100%; padding:40px;">Nessun modello disponibile.</p>';
+      if (detailEl) detailEl.innerHTML = '';
+      return;
+    }
+    applySlideClasses(track, idx);
+    renderDots(dots, list.length, idx, (i) => setIndex(i));
+    renderDioramaDetail(detailEl, list[idx], state.mode);
+  };
+
+  const setIndex = (i) => {
+    const { list } = getCurrent();
+    const n = list.length;
+    if (n === 0) return;
+    const next = ((i % n) + n) % n;
+    if (state.mode === 'ft') state.idxFt = next;
+    else state.idxInt = next;
+    sync();
+  };
+
+  const move = (dir) => setIndex((state.mode === 'ft' ? state.idxFt : state.idxInt) + dir);
+
+  // Switch FT / INT
+  const setMode = (mode) => {
+    if (mode === state.mode) return;
+    state.mode = mode;
+    diorama.dataset.mode = mode;
+    switchBtns.forEach(b => {
+      const isActive = b.dataset.mode === mode;
+      b.classList.toggle('is-active', isActive);
+      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    carouselFt.hidden = mode !== 'ft';
+    carouselInt.hidden = mode !== 'int';
+    dotsFt.hidden = mode !== 'ft';
+    dotsInt.hidden = mode !== 'int';
+    sync();
+  };
+
+  switchBtns.forEach(btn => {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
+  });
+
+  // Frecce nav
+  diorama.querySelectorAll('.diorama-nav').forEach(btn => {
+    btn.addEventListener('click', () => move(parseInt(btn.dataset.dir, 10)));
+  });
+
+  // Click su slide laterali → diventano attivi
+  diorama.addEventListener('click', (e) => {
+    const slide = e.target.closest('.diorama-slide');
+    if (!slide) return;
+    const track = slide.closest('.diorama-track');
+    if (!track) return;
+    const slides = Array.from(track.querySelectorAll('.diorama-slide'));
+    const idx = slides.indexOf(slide);
+    if (idx >= 0) setIndex(idx);
+  });
+
+  // Tastiera ← →
+  diorama.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); move(1); }
+  });
+
+  // Swipe touch
+  let touchStartX = null;
+  diorama.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0]?.clientX ?? null;
+  }, { passive: true });
+  diorama.addEventListener('touchend', (e) => {
+    if (touchStartX == null) return;
+    const dx = (e.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
+    if (Math.abs(dx) > 40) move(dx < 0 ? 1 : -1);
+    touchStartX = null;
+  });
+
+  // Listener bottoni "Aggiungi al carrello" dentro la card dettaglio (delegation)
+  detailEl?.addEventListener('click', (e) => {
+    const addBtn = e.target.closest('.btn-add-cart');
+    if (!addBtn) return;
+    const { id, type, name, price, image } = addBtn.dataset;
+    addToCart(id, type, name, price, image);
+  });
+
+  // Stato iniziale (HTML ha già mode=ft impostato, basta popolare)
+  sync();
+}

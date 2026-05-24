@@ -4,7 +4,7 @@
     {
       "name": "rcs",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "3400", "."],
+      "runtimeArgs": ["serve", "-p", "3400", "rcs"],
       "port": 3400
     }
   ]
