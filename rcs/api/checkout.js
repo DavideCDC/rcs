@@ -83,10 +83,7 @@ export default async function handler(req, res) {
         const host = ALLOWED_HOSTS.has(rawHost) ? rawHost : 'rcs-alpha.vercel.app';
 
         const session = await stripe.checkout.sessions.create({
-            // Stripe mostra automaticamente i metodi attivati dal Dashboard
-            // (card, PayPal, Klarna, ecc.) filtrati per paese/valuta/importo.
-            // Per attivare/disattivare metodi non serve toccare il codice.
-            automatic_payment_methods: { enabled: true },
+            payment_method_types: ['card'],
             locale: 'it',
             line_items,
             mode: 'payment',
@@ -122,7 +119,7 @@ export default async function handler(req, res) {
         console.error('Checkout error:', err);
         return res.status(500).json({
             error: "Errore nell'avvio del pagamento",
-            debug: { type: err?.type, code: err?.code, message: err?.message, param: err?.param }
+            debug: { type: err?.type, code: err?.code, message: err?.message, param: err?.param, marker: 'v3-card-only' }
         });
     }
 }
