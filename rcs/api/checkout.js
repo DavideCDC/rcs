@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).end('Method Not Allowed');
@@ -75,11 +75,12 @@ export default async function handler(req, res) {
         // ── URL forwarding header sanitization ──
         // req.headers.host può essere spoofato; restringo a host noti
         const ALLOWED_HOSTS = new Set([
+            'rcs-alpha.vercel.app',
             'rcs-davidegasbarri6-9643s-projects.vercel.app',
             'rcs.vercel.app',
         ]);
         const rawHost = String(req.headers.host || '').toLowerCase();
-        const host = ALLOWED_HOSTS.has(rawHost) ? rawHost : 'rcs-davidegasbarri6-9643s-projects.vercel.app';
+        const host = ALLOWED_HOSTS.has(rawHost) ? rawHost : 'rcs-alpha.vercel.app';
 
         const session = await stripe.checkout.sessions.create({
             // Stripe mostra automaticamente i metodi attivati dal Dashboard
@@ -119,9 +120,6 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('Checkout error:', err);
-        return res.status(500).json({
-            error: "Errore nell'avvio del pagamento",
-            debug: { type: err?.type, code: err?.code, message: err?.message }
-        });
+        return res.status(500).json({ error: "Errore nell'avvio del pagamento" });
     }
 }
